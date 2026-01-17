@@ -43,10 +43,15 @@ app.post('/api/signup-request', async (req, res) => {
         
         // Send OTP via Telegram
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (!botToken) {
+            console.error("TELEGRAM_BOT_TOKEN is missing!");
+            return res.status(500).json({ error: "የቴሌግራም ቦት አልተዋቀረም" });
+        }
+        
         const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
         
         const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-        await fetch(telegramUrl, {
+        const response = await fetch(telegramUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -54,9 +59,16 @@ app.post('/api/signup-request', async (req, res) => {
                 text: `የ Fidel Bingo ማረጋገጫ ኮድ: ${otp}`
             })
         });
+
+        const respData = await response.json();
+        if (!respData.ok) {
+            console.error("Telegram API Error:", respData);
+            return res.status(400).json({ error: "ለዚህ Chat ID መልዕክት መላክ አልተቻለም። መጀመሪያ ቦቱን ስታርት (@fidel_bingo_bot) ማለታችሁን ያረጋግጡ" });
+        }
         
         res.json({ message: "የማረጋገጫ ኮድ በቴሌግራም ተልኳል።" });
     } catch (err) {
+        console.error("Signup Request Error:", err);
         res.status(500).json({ error: "የሰርቨር ስህተት አጋጥሟል" });
     }
 });

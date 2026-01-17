@@ -37,7 +37,7 @@ def handle_contact(message):
         
         # Create inline keyboard for the website link
         markup = types.InlineKeyboardMarkup()
-        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://f8f3f826-54e0-4041-b327-2bc772ec9452-00-1qr0kb4ib98ue.worf.replit.dev")
+        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://2bb76bef-ba0f-4367-944c-acff8aa5718b-00-tfnvmmk0ke2o.picard.replit.dev")
         markup.add(web_button)
         
         bot.send_message(
