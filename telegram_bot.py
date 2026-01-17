@@ -37,12 +37,13 @@ def handle_contact(message):
         
         # Create inline keyboard for the website link
         markup = types.InlineKeyboardMarkup()
-        # Using Replit's public URL format
-        public_url = f"https://{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER')}.repl.co"
-        # However, Replit sometimes uses different domains. Let's use a more reliable way if possible, 
-        # but for now, since we are in a workspace, the slug is often 'workspace'.
-        # A better approach is to use the specific URL the user is currently seeing.
-        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://workspace.vamosboss11.repl.co")
+        # The correct URL for Replit workspaces usually follows this pattern
+        # https://<repl_id>.id.repl.conf
+        # Or sometimes simply the domain Replit provides in the webview
+        # Given the screenshot shows workspace.vamosboss11.repl.co is not working, 
+        # let's try the .id.repl.conf format which is more stable for internal previews.
+        # But a safer way is to use a link that definitely works.
+        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://e895c07e-f777-47d7-a31c-c7528dc5ce17.id.repl.conf")
         markup.add(web_button)
         
         bot.send_message(
