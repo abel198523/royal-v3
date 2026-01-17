@@ -1,10 +1,10 @@
-modules = ["nodejs-20", "web", "python-3.11", "postgresql-16"]
+modules = ["nodejs-20", "web", "python-3.11"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["jq", "openssl", "postgresql"]
+packages = ["cargo", "jq", "libiconv", "openssl", "postgresql", "rustc"]
 
 [workflows]
 runButton = "Project"
@@ -41,6 +41,9 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 telegram_bot.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000
