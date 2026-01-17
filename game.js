@@ -596,7 +596,7 @@ window.navTo = navTo;
 const doLoginBtn = document.getElementById('do-login');
 if (doLoginBtn) {
     doLoginBtn.onclick = async () => {
-        const phone = document.getElementById('login-phone').value;
+        const telegram_chat_id = document.getElementById('login-telegram').value;
         const password = document.getElementById('login-pass').value;
         const errorEl = document.getElementById('auth-error');
         if (errorEl) errorEl.innerText = '';
@@ -605,7 +605,7 @@ if (doLoginBtn) {
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, password })
+                body: JSON.stringify({ telegram_chat_id, password })
             });
             const data = await res.json();
             if (res.ok) {

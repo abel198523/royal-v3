@@ -103,12 +103,12 @@ app.post('/api/signup-verify', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { phone, password } = req.body;
+    const { telegram_chat_id, password } = req.body;
     try {
-        const result = await db.query('SELECT * FROM users WHERE phone_number = $1', [phone]);
+        const result = await db.query('SELECT * FROM users WHERE telegram_chat_id = $1', [telegram_chat_id]);
         if (result.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
         const isMatch = await bcrypt.compare(password, result.rows[0].password_hash);
-        if (!isMatch) return res.status(401).json({ error: "ስህተት" });
+        if (!isMatch) return res.status(401).json({ error: "የተሳሳተ የይለፍ ቃል" });
         
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
@@ -131,7 +131,7 @@ const adminOnly = (req, res, next) => {
         const decoded = jwt.verify(token, SECRET_KEY);
         // ጥብቅ ቁጥጥር፡ በስልክ ቁጥሩ ብቻ አድሚን መሆኑን ማረጋገጥ
         // 0980682889 በቋሚነት አድሚን ነው
-        if (decoded.username === '0980682889' || (decoded.is_admin && decoded.username === '0980682889')) {
+        if (decoded.telegram_chat_id === '0980682889' || (decoded.is_admin && decoded.telegram_chat_id === '0980682889')) {
             req.user = decoded;
             next();
         } else {
