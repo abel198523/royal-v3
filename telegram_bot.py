@@ -52,4 +52,8 @@ def handle_contact(message):
 
 if __name__ == "__main__":
     print("Bot is starting...")
-    bot.infinity_polling()
+    try:
+        bot.remove_webhook()
+        bot.infinity_polling(skip_pending=True)
+    except Exception as e:
+        print(f"Error: {e}")
