@@ -460,10 +460,16 @@ function startRoomCountdown(amount) {
     const room = rooms[amount];
     if (!room) return;
     
+    console.log(`Starting countdown for room ${amount}`);
     room.gameCountdown = 30;
     if (room.countdownInterval) clearInterval(room.countdownInterval);
     
     room.countdownInterval = setInterval(() => {
+        if (room.gameInterval) {
+            // If a game is already running, don't count down
+            return;
+        }
+
         room.gameCountdown--;
         
         // Broadcast ONLY to clients in this specific room
@@ -473,19 +479,14 @@ function startRoomCountdown(amount) {
             room: amount 
         });
 
-        // Update global stats for all clients
-        updateGlobalStats();
-
         if (room.gameCountdown <= 0) {
             clearInterval(room.countdownInterval);
             room.countdownInterval = null;
             
-            // If there are players with cards, start the game
             const playersWithCards = Array.from(room.players).filter(p => p.cardNumber);
             if (playersWithCards.length > 0) {
                 startRoomGame(amount);
             } else {
-                // No players with cards, just restart countdown immediately
                 startRoomCountdown(amount);
             }
         }

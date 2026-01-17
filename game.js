@@ -222,7 +222,9 @@ socket.onmessage = (event) => {
             createAvailableCards();
         }
         updateRoomStats(data.stats, data.timers, data.prizes);
-        if (currentRoom && data.timers[currentRoom] !== undefined) {
+        
+        // Ensure selection timer is updated if we are in a room
+        if (currentRoom && data.timers && data.timers[currentRoom] !== undefined) {
             updateCountdown(data.timers[currentRoom]);
         }
     } else if (data.type === 'BALANCE_UPDATE') {
