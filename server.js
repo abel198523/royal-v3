@@ -849,9 +849,11 @@ async function initDatabase() {
                 password_hash VARCHAR(256) NOT NULL,
                 username VARCHAR(64),
                 name VARCHAR(100),
-                balance DECIMAL(10, 2) DEFAULT 100,
+                balance DECIMAL(10, 2) DEFAULT 0,
                 player_id VARCHAR(20),
-                is_admin BOOLEAN DEFAULT FALSE
+                telegram_chat_id VARCHAR(50),
+                is_admin BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS balance_history (
@@ -863,17 +865,6 @@ async function initDatabase() {
                 description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
-
-            -- Ensure columns exist for existing tables
-            DO $$ 
-            BEGIN 
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='player_id') THEN
-                    ALTER TABLE users ADD COLUMN player_id VARCHAR(20);
-                END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_admin') THEN
-                    ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
-                END IF;
-            END $$;
 
             CREATE TABLE IF NOT EXISTS deposit_requests (
                 id SERIAL PRIMARY KEY,
@@ -894,6 +885,23 @@ async function initDatabase() {
                 status VARCHAR(20) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- Ensure columns exist for existing tables
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='player_id') THEN
+                    ALTER TABLE users ADD COLUMN player_id VARCHAR(20);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_admin') THEN
+                    ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='telegram_chat_id') THEN
+                    ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(50);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='created_at') THEN
+                    ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                END IF;
+            END $$;
         `);
         console.log("Database initialized successfully.");
     } catch (err) {
