@@ -7,6 +7,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Custom Alert Modal -->
+    <div id="custom-alert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div class="alert-character">
+                <img id="alert-img" src="static/images/low_balance.png" alt="Alert">
+            </div>
+            <div class="alert-content">
+                <h3 id="alert-title">ማሳሰቢያ</h3>
+                <p id="alert-msg">በቂ ባላንስ የልዎትም፤ እባክዎን ዲፖዚት ያድርጉ።</p>
+                <button onclick="closeCustomAlert()" class="alert-btn">እሺ</button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <div id="side-menu" class="side-menu">

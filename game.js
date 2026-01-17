@@ -373,9 +373,29 @@ const closePreview = document.getElementById('close-preview');
 const rejectCard = document.getElementById('reject-card');
 const confirmCard = document.getElementById('confirm-card');
 
+function showCustomAlert(title, message, imageType = 'low_balance') {
+    const alertOverlay = document.getElementById('custom-alert');
+    const alertTitle = document.getElementById('alert-title');
+    const alertMsg = document.getElementById('alert-msg');
+    const alertImg = document.getElementById('alert-img');
+    
+    if (!alertOverlay || !alertTitle || !alertMsg || !alertImg) return;
+    
+    alertTitle.innerText = title;
+    alertMsg.innerText = message;
+    alertImg.src = `static/images/${imageType}.png`;
+    
+    alertOverlay.classList.add('active');
+}
+
+window.closeCustomAlert = function() {
+    const alertOverlay = document.getElementById('custom-alert');
+    if (alertOverlay) alertOverlay.classList.remove('active');
+};
+
 function showCardPreview(num) {
     if (userBalance < currentRoom) {
-        alert("በቂ ባላንስ የልዎትም፤ እባክዎን ዲፖዚት ያድርጉ።");
+        showCustomAlert("ባላንስ የሎትም", "ይቅርታ፣ ካርድ ለመግዛት በቂ ብር የለዎትም። እባክዎ መጀመሪያ አካውንትዎን ይሙሉ።", "low_balance");
         return;
     }
     const state = getRoomState(currentRoom);
@@ -383,6 +403,16 @@ function showCardPreview(num) {
     state.currentCardData = getCardById(num);
     previewCardNumber.innerText = `Card #${num}`;
     modalCardContent.innerHTML = '';
+    
+    // Add character to preview
+    const charHeader = document.createElement('div');
+    charHeader.className = 'preview-character-header';
+    charHeader.innerHTML = `
+        <img src="static/images/card_confirm.png" alt="Confirm">
+        <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">ይህንን ካርድ መርጠዋል</span>
+    `;
+    modalCardContent.appendChild(charHeader);
+    
     modalCardContent.appendChild(createCardPreview(state.currentCardData));
     previewOverlay.classList.add('active');
 }
