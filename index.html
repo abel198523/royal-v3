@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fidel Bingo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <div id="side-menu" class="side-menu">
+            <div class="menu-header">
+                <div class="menu-logo" id="menu-logo-trigger">FIDEL BINGO</div>
+                <button id="close-menu" class="close-menu-btn">×</button>
+            </div>
+            <div class="menu-items">
+                <a href="#" class="menu-item active" onclick="navTo('stake')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="menu-item" onclick="navTo('profile')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Profile</span>
+                </a>
+                <a href="#" class="menu-item" onclick="navTo('wallet')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h0M2 9.5h20"></path></svg>
+                    <span>Wallet</span>
+                </a>
+                <a href="#" class="menu-item" onclick="navTo('deposit')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                    <span>Deposit</span>
+                </a>
+                <a href="#" class="menu-item" onclick="navTo('withdraw')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+                    <span>Withdraw</span>
+                </a>
+                <a href="#" id="admin-menu-item" class="menu-item" onclick="promptAdminPassword()" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                    <span>Admin Panel</span>
+                </a>
+                <div class="menu-divider"></div>
+                <a href="#" class="menu-item logout" onclick="logout()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+        <div id="menu-overlay" class="menu-overlay"></div>
+
+        <!-- Auth Screen (Full Page Login) -->
+        <div id="auth-screen" class="auth-screen active">
+            <div class="auth-box">
+                <h1 class="auth-logo">FIDEL BINGO</h1>
+                
+                <div id="login-form">
+                    <h2>Login</h2>
+                    <input type="text" id="login-phone" placeholder="Phone Number">
+                    <input type="password" id="login-pass" placeholder="Password">
+                    <button id="do-login" class="auth-btn">Login</button>
+                    <p>No account? <a href="#" onclick="showSignup()">Sign up</a></p>
+                </div>
+
+                <div id="signup-form" style="display: none;">
+                    <h2>Sign Up</h2>
+                    <input type="text" id="signup-name" placeholder="Full Name">
+                    <input type="text" id="signup-telegram" placeholder="Telegram Chat ID">
+                    <p style="font-size: 0.8rem; margin: -5px 0 10px 0;">
+                        <a href="https://t.me/userinfobot" target="_blank" style="color: var(--primary);">Get Chat ID from our Bot</a>
+                    </p>
+                    <input type="password" id="signup-pass" placeholder="Password">
+                    <button id="do-signup" class="auth-btn signup">Register</button>
+                    <p>Have an account? <a href="#" onclick="showLogin()">Login</a></p>
+                </div>
+
+                <div id="otp-form" style="display: none;">
+                    <h2>Verify OTP</h2>
+                    <p id="otp-hint" style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--primary); font-weight: bold;"></p>
+                    <input type="text" id="otp-code" placeholder="4-Digit Code" maxlength="4" style="text-align: center; letter-spacing: 5px; font-size: 1.5rem;">
+                    <button id="verify-otp" class="auth-btn signup">Verify & Register</button>
+                    <p><a href="#" onclick="showSignup()">Back to Signup</a></p>
+                </div>
+                <div id="auth-error" class="auth-error"></div>
+            </div>
+        </div>
+
+        <!-- Main App Content (Hidden until Login) -->
+        <div id="main-content" style="display: none;">
+            <!-- Stake Screen -->
+            <div id="stake-screen" class="stake-screen">
+                <div class="selection-header">
+                    <button id="open-menu-stake" class="menu-trigger">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="selection-title">Select Stake</div>
+                    <div class="user-profile">
+                        <span id="stake-username">royalsup1</span>
+                    </div>
+                </div>
+
+                <div class="stake-list" id="stake-list">
+                    <!-- Stake rows injected by JS -->
+                </div>
+            </div>
+
+            <!-- Profile Screen -->
+            <div id="profile-screen" class="profile-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">My Profile</div>
+                    <div class="user-profile">
+                        <span id="profile-username-top">royalsup1</span>
+                    </div>
+                </div>
+                <div class="profile-content">
+                    <div class="profile-info-card">
+                        <div class="profile-avatar">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <h2 id="profile-full-name">User Name</h2>
+                        <p id="profile-player-id" style="font-weight: bold; color: var(--primary); margin-bottom: 5px;">ID: --</p>
+                        <p id="profile-phone-number">0900000000</p>
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="profile-stat-item">
+                            <span class="stat-label">Total Games</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="profile-stat-item">
+                            <span class="stat-label">Total Wins</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallet Screen -->
+            <div id="wallet-screen" class="wallet-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">Wallet</div>
+                </div>
+                <div class="wallet-content">
+                    <div class="wallet-card">
+                        <span class="wallet-label">Current Balance</span>
+                        <div class="wallet-balance-row">
+                            <span class="wallet-currency">ETB</span>
+                            <span id="wallet-balance-value" class="wallet-balance">0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="history-section">
+                        <h3 style="margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Balance History
+                        </h3>
+                        <div id="balance-history-list" class="history-list">
+                            <!-- History items injected by JS -->
+                            <p class="empty-msg">No transactions yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deposit Screen -->
+            <div id="deposit-screen" class="deposit-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">Deposit</div>
+                </div>
+                <div class="wallet-content">
+                    <div class="deposit-section">
+                        <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Deposit Money</h3>
+                        <div class="input-group">
+                            <label>Amount (መጠን)</label>
+                            <select id="deposit-amount" class="form-input">
+                                <option value="50">50 ETB</option>
+                                <option value="100">100 ETB</option>
+                                <option value="200">200 ETB</option>
+                                <option value="500">500 ETB</option>
+                                <option value="1000">1000 ETB</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Method (መንገድ)</label>
+                            <select id="deposit-method" class="form-input">
+                                <option value="CBE">CBE (የኢትዮጵያ ንግድ ባንክ)</option>
+                                <option value="Telebirr">Telebirr (ቴሌብር)</option>
+                                <option value="BOA">Abyssinia (አቢሲኒያ)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Transaction Code (ማረጋገጫ ኮድ)</label>
+                            <textarea id="deposit-code" class="form-input" rows="3" placeholder="ከቴሌብር የደረስዎትን ሙሉ text እዚ ያስገቡ" style="resize: none; font-size: 0.9rem;"></textarea>
+                        </div>
+                        <button id="submit-deposit" class="wallet-btn deposit" style="width: 100%; margin-top: 10px;">Submit Request</button>
+                        <div id="deposit-status" style="margin-top: 10px; text-align: center; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Withdraw Screen -->
+            <div id="withdraw-screen" class="withdraw-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">Withdraw</div>
+                </div>
+                <div class="wallet-content">
+                    <div class="wallet-card" style="background: linear-gradient(135deg, #ef4444, #991b1b);">
+                        <span class="wallet-label">Available for Withdrawal</span>
+                        <div class="wallet-balance-row">
+                            <span class="wallet-currency">ETB</span>
+                            <span id="withdraw-balance-value" class="wallet-balance">0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="deposit-section">
+                        <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Withdraw Money</h3>
+                        <div class="input-group">
+                            <label>Amount (መጠን)</label>
+                            <input type="number" id="withdraw-amount" class="form-input" placeholder="Min 50 ETB">
+                        </div>
+                        <div class="input-group">
+                            <label>Method (መንገድ)</label>
+                            <select id="withdraw-method" class="form-input">
+                                <option value="CBE">CBE (የኢትዮጵያ ንግድ ባንክ)</option>
+                                <option value="Telebirr">Telebirr (ቴሌብር)</option>
+                                <option value="BOA">Abyssinia (አቢሲኒያ)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Account Number / Phone (የሂሳብ ቁጥር)</label>
+                            <input type="text" id="withdraw-account" class="form-input" placeholder="Enter account details">
+                        </div>
+                        <button id="submit-withdraw" class="wallet-btn withdraw" style="width: 100%; margin-top: 10px; background: #ef4444;">Submit Withdrawal</button>
+                        <div id="withdraw-status" style="margin-top: 10px; text-align: center; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Screen -->
+            <div id="admin-screen" class="admin-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">Admin Panel</div>
+                </div>
+                <div class="admin-content">
+                    <div class="admin-tabs">
+                        <button class="tab-btn active" onclick="switchAdminTab('users')">Users</button>
+                        <button class="tab-btn" onclick="switchAdminTab('deposits')">Deposits</button>
+                        <button class="tab-btn" onclick="switchAdminTab('withdrawals')">Withdrawals</button>
+                        <button class="tab-btn" onclick="switchAdminTab('broadcast')">Broadcast</button>
+                    </div>
+
+                    <div id="admin-broadcast-tab" class="admin-tab-content">
+                        <div class="deposit-section">
+                            <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Send Message to All Users</h3>
+                            <div class="input-group">
+                                <label>Message (መልዕክት)</label>
+                                <textarea id="broadcast-message" class="form-input" rows="5" placeholder="ለሁሉም ተጠቃሚዎች የሚተላለፍ መልዕክት እዚህ ያስገቡ..." style="resize: none; font-size: 0.9rem;"></textarea>
+                            </div>
+                            <button id="send-broadcast" class="wallet-btn deposit" style="width: 100%; margin-top: 10px;">Send Broadcast</button>
+                        </div>
+                    </div>
+
+                    <div id="admin-users-tab" class="admin-tab-content active">
+                        <div class="admin-search-box">
+                            <input type="text" id="admin-search-phone" placeholder="Phone Number (e.g. 09...)">
+                            <button id="admin-search-btn" class="admin-btn">Search User</button>
+                        </div>
+                        
+                        <div id="admin-user-result" class="admin-user-card" style="display: none;">
+                            <div class="user-info">
+                                <h3 id="admin-user-name">User Name</h3>
+                                <p id="admin-user-phone">0900000000</p>
+                                <div class="current-balance">
+                                    Current Balance: <span id="admin-user-balance">0.00</span> ETB
+                                </div>
+                            </div>
+                            
+                            <div class="balance-actions">
+                                <div class="input-group">
+                                    <input type="number" id="admin-balance-amount" placeholder="Amount">
+                                </div>
+                                <div class="btn-group">
+                                    <button id="admin-add-balance" class="balance-btn add">+ Add</button>
+                                    <button id="admin-sub-balance" class="balance-btn sub">- Subtract</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-deposits-tab" class="admin-tab-content">
+                        <div id="admin-deposits-list" class="deposits-list">
+                            <p class="empty-msg">No pending deposit requests.</p>
+                        </div>
+                    </div>
+
+                    <div id="admin-withdrawals-tab" class="admin-tab-content">
+                        <div id="admin-withdrawals-list" class="deposits-list">
+                            <p class="empty-msg">No pending withdrawal requests.</p>
+                        </div>
+                    </div>
+
+                    <div id="admin-status-msg" class="admin-status"></div>
+                </div>
+            </div>
+
+            <!-- Selection Screen -->
+            <div id="selection-screen" class="selection-screen">
+                <div class="selection-header">
+                    <button class="back-btn" onclick="navTo('stake')">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="selection-title">Fidel bingo</div>
+                    <div class="user-profile">
+                        <span id="sel-username">royalsup1</span>
+                    </div>
+                </div>
+
+                <div class="selection-stats">
+                    <div class="sel-stat-box highlight">
+                        <span class="sel-stat-label">BALANCE</span>
+                        <span class="sel-stat-value" id="sel-balance">0</span>
+                    </div>
+                    <div class="sel-stat-box">
+                        <span class="sel-stat-label">STAKE</span>
+                        <span class="sel-stat-value" id="sel-stake-amount">-</span>
+                    </div>
+                    <div class="sel-stat-box">
+                        <span class="sel-stat-label">YOUR BOARD</span>
+                        <span class="sel-stat-value" id="sel-my-board">-</span>
+                    </div>
+                </div>
+
+                <div class="cards-container">
+                    <div class="countdown-overlay-timer">
+                        <span class="timer-label">የሚቀጥለው ጨዋታ በ፡</span>
+                        <div class="timer-value-large">⏰ <span id="selection-timer">30</span></div>
+                        <span id="selection-timer-large" style="display:none;">30</span>
+                    </div>
+                    <div class="cards-grid-legend">
+                        <div class="legend">
+                            <div class="legend-item"><div class="dot green"></div> Available (100)</div>
+                            <div class="legend-item"><div class="dot red"></div> Taken (0)</div>
+                        </div>
+                    </div>
+                    <div class="cards-grid" id="cards-grid">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="game-screen">
+                <header>
+                    <button id="open-menu-game" class="menu-trigger">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="status-badge">
+                        <div class="status-dot"></div>
+                        CONNECTED
+                    </div>
+                    <div class="user-profile">
+                        <span id="username">royalsup1</span>
+                        <button class="logout-btn" onclick="logout()" style="background: #ef4444; border: none; padding: 6px; border-radius: 6px; color: white; margin-left: 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="game-header-stats">
+                    <div class="stats-row">
+                        <div class="stat-box-dark">
+                            <span class="stat-label">DERASH</span>
+                            <span class="stat-value" id="derash">0</span>
+                        </div>
+                        <div class="stat-box-dark">
+                            <span class="stat-label">PLAYERS</span>
+                            <span class="stat-value" id="players">0</span>
+                        </div>
+                        <div class="stat-box-dark small-stat">
+                            <span class="stat-label">BET</span>
+                            <span class="stat-value" id="bet-amount">0</span>
+                        </div>
+                        <div class="stat-box-dark small-stat">
+                            <span class="stat-label">CALLS</span>
+                            <span class="stat-value" id="call-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-main-layout">
+                    <!-- Left: Master Grid -->
+                    <div class="master-grid-container">
+                        <div class="bingo-header-labels">
+                            <span class="h-B" data-count="0" style="color: #3b82f6;">B</span>
+                            <span class="h-I" data-count="0" style="color: #8b5cf6;">I</span>
+                            <span class="h-N" data-count="0" style="color: #22c55e;">N</span>
+                            <span class="h-G" data-count="0" style="color: #f59e0b;">G</span>
+                            <span class="h-O" data-count="0" style="color: #ef4444;">O</span>
+                        </div>
+                        <div class="master-grid-scroll">
+                            <div class="master-grid" id="master-grid">
+                                <!-- 1-75 numbers injected by JS -->
+                            </div>
+                        </div>
+                        <div class="total-called-bar">
+                            <div class="progress-info">Total Called: <span id="progress-text">0/75</span></div>
+                            <div class="progress-container">
+                                <div class="progress-bar" id="progress-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Current Call and My Card -->
+                    <div class="right-panel">
+                        <div class="current-call-card">
+                            <span class="stat-label">CURRENT CALL</span>
+                            <div class="active-ball-display">
+                                <span id="active-ball">--</span>
+                            </div>
+                            <div class="recent-balls-row" id="recent-balls">
+                                <!-- Recent balls injected by JS -->
+                            </div>
+                        </div>
+
+                        <div class="auto-marking-row">
+                            <span class="auto-label">Auto</span>
+                            <div class="toggle-switch" id="auto-toggle">
+                                <div class="toggle-handle"></div>
+                            </div>
+                        </div>
+
+                        <div class="my-card-container">
+                            <div class="card-title-header">
+                                <span id="my-card-label">የእርስዎ ካርድ</span>
+                            </div>
+                            <div id="bingo-board" class="player-card-grid">
+                                <div class="no-board-selected">
+                                    <h3>No Board Selected</h3>
+                                    <p>Waiting for next game...</p>
+                                </div>
+                            </div>
+                            <button id="bingo-btn" class="bingo-btn">BINGO!</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Preview Overlay -->
+            <div id="preview-overlay" class="preview-overlay">
+                <div class="preview-modal">
+                    <div class="preview-modal-header">
+                        <h3 id="preview-card-number">Card #1</h3>
+                        <button id="close-preview" class="close-btn">×</button>
+                    </div>
+                    <div id="modal-card-content" class="modal-card-content">
+                        <!-- Bingo board goes here -->
+                    </div>
+                    <div class="preview-actions">
+                        <button id="reject-card" class="action-btn reject">Reject</button>
+                        <button id="confirm-card" class="action-btn confirm">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End of main-content -->
+    </div>
+    <!-- Winner Announcement Modal -->
+    <div id="winner-modal" class="winner-modal">
+        <div class="winner-content">
+            <div class="confetti-container" id="confetti"></div>
+            <div class="winner-icon">🏆</div>
+            <h2 id="winner-title">BINGO!</h2>
+            <div class="winner-name-box">
+                <span id="winner-display-name">---</span>
+            </div>
+            <div id="winner-card-container" class="winner-card-preview"></div>
+            <p id="winner-amount-display">አሸናፊ!</p>
+            <button class="modal-close-btn" onclick="closeWinnerModal()">ተመለስ</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="notification-toast">
+        <div class="toast-content">
+            <span class="toast-icon">⚠️</span>
+            <span id="toast-message">---</span>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
