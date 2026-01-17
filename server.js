@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const SECRET_KEY = "bingo_secret_123";
+const SECRET_KEY = process.env.SESSION_SECRET || "bingo_secret_123";
 app.use(express.json());
 app.use(express.static(__dirname));
 
