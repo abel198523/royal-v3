@@ -4,6 +4,11 @@ from telebot import types
 import psycopg2
 from dotenv import load_dotenv
 import bcrypt
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -11,55 +16,67 @@ TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not TOKEN:
-    print("ERROR: TELEGRAM_BOT_TOKEN is not set in environment variables!")
-    exit(1)
+    logger.error("TELEGRAM_BOT_TOKEN is not set in environment variables!")
+    # In a local/replit environment, we can't do much without a token.
+    # However, on Render, it must be provided.
+    exit(1) 
 
-print(f"Starting bot with token: {TOKEN[:5]}...{TOKEN[-5:] if TOKEN else ''}")
+logger.info(f"Starting bot with token prefix: {TOKEN[:5]}...")
 bot = telebot.TeleBot(TOKEN, threaded=False)
 
 # Store user state temporarily (In production, use Redis or a DB table)
 user_states = {}
 
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
+    try:
+        return psycopg2.connect(DATABASE_URL)
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        return None
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    button = types.KeyboardButton("Share Contact to Register", request_contact=True)
-    markup.add(button)
-    
-    bot.send_message(
-        message.chat.id, 
-        "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ከታች ያለውን 'Share Contact to Register' የሚለውን ቁልፍ ይጫኑ።", 
-        reply_markup=markup
-    )
+    try:
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        button = types.KeyboardButton("Share Contact to Register", request_contact=True)
+        markup.add(button)
+        
+        bot.send_message(
+            message.chat.id, 
+            "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ከታች ያለውን 'Share Contact to Register' የሚለውን ቁልፍ ይጫኑ።", 
+            reply_markup=markup
+        )
+    except Exception as e:
+        logger.error(f"Error in start command: {e}")
 
 @bot.message_handler(content_types=['contact'])
 def handle_contact(message):
     if message.contact is not None:
-        chat_id = str(message.chat.id)
-        
-        # Create inline keyboard for the website link
-        markup = types.InlineKeyboardMarkup()
-        # Direct dev URL with the full unique subdomain
-        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://e895c07e-f777-47d7-a31c-c7528dc5ce17-00-s57jntre5pnd.picard.replit.dev/")
-        markup.add(web_button)
-        
-        bot.send_message(
-            message.chat.id, 
-            f"የእርስዎ ቻት አይዲ (Chat ID)፡ `{chat_id}` 👈\n\nእባክዎ ይህንን ኮፒ አድርገው አፑ ላይ ይመዝገቡ።",
-            parse_mode='Markdown',
-            reply_markup=markup
-        )
-
-# Remove unused password step logic if you want to keep the file clean
-# But for now, we'll just leave it and only the contact handler is active.
+        try:
+            chat_id = str(message.chat.id)
+            
+            # Create inline keyboard for the website link
+            markup = types.InlineKeyboardMarkup()
+            
+            # Use environment variable for the web URL to make it dynamic
+            web_url = os.environ.get('WEB_URL', 'https://fidel-bingo.onrender.com') 
+            
+            web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url=web_url)
+            markup.add(web_button)
+            
+            bot.send_message(
+                message.chat.id, 
+                f"የእርስዎ ቻት አይዲ (Chat ID)፡ `{chat_id}` 👈\n\nእባክዎ ይህንን ኮፒ አድርገው አፑ ላይ ይመዝገቡ።",
+                parse_mode='Markdown',
+                reply_markup=markup
+            )
+        except Exception as e:
+            logger.error(f"Error in handle_contact: {e}")
 
 if __name__ == "__main__":
-    print("Bot is starting...")
+    logger.info("Bot is starting polling...")
     try:
         bot.remove_webhook()
         bot.infinity_polling(skip_pending=True)
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Bot Polling Error: {e}")
