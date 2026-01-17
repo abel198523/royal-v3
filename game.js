@@ -191,7 +191,6 @@ socket.onmessage = (event) => {
     } else if (data.type === 'COUNTDOWN') {
         if (data.room == currentRoom) {
             updateCountdown(data.value);
-            if (data.value <= 0) startGame();
         }
     } else if (data.type === 'GAME_START') {
         if (data.room == currentRoom) startGame();
