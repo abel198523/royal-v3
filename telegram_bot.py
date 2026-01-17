@@ -76,7 +76,15 @@ def handle_contact(message):
 if __name__ == "__main__":
     logger.info("Bot is starting polling...")
     try:
+        # Try to clean up any existing webhook before starting polling
+        import requests
+        try:
+            requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=10)
+            logger.info("Webhook deleted and pending updates dropped.")
+        except Exception as e:
+            logger.warning(f"Failed to delete webhook via requests: {e}")
+            
         bot.remove_webhook()
-        bot.infinity_polling(skip_pending=True)
+        bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
     except Exception as e:
         logger.error(f"Bot Polling Error: {e}")
