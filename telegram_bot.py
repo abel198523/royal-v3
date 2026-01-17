@@ -39,8 +39,10 @@ def handle_contact(message):
         markup = types.InlineKeyboardMarkup()
         # The correct URL for Replit workspaces in 2026/latest format
         # It's usually https://<repl_id>.id.repl.conf or https://<slug>.<owner>.repl.co
-        # But if those fail, let's use the most standard one which is:
-        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://e895c07e-f777-47d7-a31c-c7528dc5ce17-00-s57jntre5pnd.picard.replit.dev")
+        # Based on the screenshot "Run this app to see the results here", it means
+        # the app is not properly exposed. But for a public link that works even if
+        # the user is not logged in to Replit, we use the .replit.app format.
+        web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url="https://e895c07e-f777-47d7-a31c-c7528dc5ce17-00-s57jntre5pnd.picard.replit.dev/")
         markup.add(web_button)
         
         bot.send_message(
