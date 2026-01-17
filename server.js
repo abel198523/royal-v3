@@ -479,6 +479,9 @@ function startRoomCountdown(amount) {
             room: amount 
         });
 
+        // Update global stats so Stake Screen timers update
+        updateGlobalStats();
+
         if (room.gameCountdown <= 0) {
             clearInterval(room.countdownInterval);
             room.countdownInterval = null;
