@@ -7,9 +7,14 @@ import bcrypt
 
 load_dotenv()
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-DATABASE_URL = os.getenv('DATABASE_URL')
+TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
+if not TOKEN:
+    print("ERROR: TELEGRAM_BOT_TOKEN is not set in environment variables!")
+    exit(1)
+
+print(f"Starting bot with token: {TOKEN[:5]}...{TOKEN[-5:] if TOKEN else ''}")
 bot = telebot.TeleBot(TOKEN, threaded=False)
 
 # Store user state temporarily (In production, use Redis or a DB table)
