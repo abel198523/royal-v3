@@ -1654,14 +1654,22 @@ header {
 }
 
 .master-cell.called {
-    background: #374151;
+    background: #22c55e;
     color: white;
+    font-weight: 800;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
 }
 
 .master-cell.last-called {
     background: #f59e0b;
-    color: white;
-    box-shadow: 0 0 8px #f59e0b;
+    color: #0c111d;
+    box-shadow: 0 0 12px #f59e0b;
+    animation: pulseLast 1s infinite alternate;
+}
+
+@keyframes pulseLast {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
 }
 
 .total-called-bar {
