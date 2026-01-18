@@ -221,6 +221,7 @@ app.post('/telegram-webhook', async (req, res) => {
         if (callbackData.startsWith('approve_dep_') || callbackData.startsWith('reject_dep_')) {
             const action = callbackData.startsWith('approve_dep_') ? 'approve' : 'reject';
             const depositId = callbackData.replace('approve_dep_', '').replace('reject_dep_', '');
+            const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
             try {
                 if (action === 'approve') {
@@ -228,8 +229,13 @@ app.post('/telegram-webhook', async (req, res) => {
                     const deposit = await db.query('SELECT * FROM deposit_requests WHERE id = $1 AND status = $2', [depositId, 'pending']);
                     if (deposit.rows.length > 0) {
                         const { user_id, amount, method } = deposit.rows[0];
-                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
+                        
+                        // Critical: Ensure amount is parsed as number
+                        const depositAmount = parseFloat(amount);
+                        
+                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [depositAmount, user_id]);
                         await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', depositId]);
+                        
                         const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
                         const currentBalance = parseFloat(userRes.rows[0].balance || 0);
                         
@@ -247,12 +253,12 @@ app.post('/telegram-webhook', async (req, res) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chat_id: userRes.rows[0].telegram_chat_id,
-                                    text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${amount} ETB\nአሁናዊ ባላንስ: ${currentBalance} ETB`
+                                    text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${depositAmount} ETB\nአሁናዊ ባላንስ: ${currentBalance} ETB`
                                 })
                             }).catch(e => {});
                         }
 
-                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, currentBalance, `Approved via Telegram (${method})`]);
+                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', depositAmount, currentBalance, `Approved via Telegram (${method})`]);
                         await db.query('COMMIT');
 
                         // Edit admin message
@@ -265,6 +271,8 @@ app.post('/telegram-webhook', async (req, res) => {
                                 text: update.callback_query.message.text + `\n\n✅ ተፈቅዷል (Approved)`
                             })
                         }).catch(e => {});
+                    } else {
+                        await db.query('ROLLBACK');
                     }
                 } else {
                     await db.query("UPDATE deposit_requests SET status = 'rejected' WHERE id = $1", [depositId]);
@@ -294,6 +302,7 @@ app.post('/telegram-webhook', async (req, res) => {
                 const withdraw = await db.query('SELECT * FROM withdraw_requests WHERE id = $1 AND status = $2', [withdrawId, 'pending']);
                 if (withdraw.rows.length > 0) {
                     const { user_id, amount } = withdraw.rows[0];
+                    const withdrawAmount = parseFloat(amount);
                     const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
                     
                     if (action === 'approve') {
@@ -304,20 +313,31 @@ app.post('/telegram-webhook', async (req, res) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chat_id: userRes.rows[0].telegram_chat_id,
-                                    text: `✅ የዊዝድሮው (Withdraw) ጥያቄዎ ተቀባይነት አግኝቷል!\n\nመጠን: ${amount} ETB\n\nገንዘቡ በቅርቡ ይላክልዎታል።`
+                                    text: `✅ የዊዝድሮው (Withdraw) ጥያቄዎ ተቀባይነት አግኝቷል!\n\nመጠን: ${withdrawAmount} ETB\n\nገንዘቡ በቅርቡ ይላክልዎታል።`
                                 })
                             }).catch(e => {});
                         }
                     } else {
-                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
+                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [withdrawAmount, user_id]);
                         await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['rejected', withdrawId]);
+                        
+                        const updatedUser = await db.query('SELECT balance FROM users WHERE id = $1', [user_id]);
+                        const updatedBalance = parseFloat(updatedUser.rows[0].balance);
+
+                        // WebSocket Notify for refund
+                        wss.clients.forEach(client => {
+                            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
+                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: updatedBalance }));
+                            }
+                        });
+
                         if (userRes.rows[0].telegram_chat_id) {
                             fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chat_id: userRes.rows[0].telegram_chat_id,
-                                    text: `❌ የዊዝድሮው (Withdraw) ጥያቄዎ ውድቅ ተደርጓል!\n\nመጠን: ${amount} ETB ተመላሽ ሆኗል።`
+                                    text: `❌ የዊዝድሮው (Withdraw) ጥያቄዎ ውድቅ ተደርጓል!\n\nመጠን: ${withdrawAmount} ETB ተመላሽ ሆኗል።\nአሁናዊ ባላንስ: ${updatedBalance} ETB`
                                 })
                             }).catch(e => {});
                         }
