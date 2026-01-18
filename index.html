@@ -72,6 +72,7 @@
                     <input type="text" id="login-telegram" placeholder="Telegram Chat ID">
                     <input type="password" id="login-pass" placeholder="Password">
                     <button id="do-login" class="auth-btn">Login</button>
+                    <div id="auth-error-login" class="auth-error"></div>
                     <p>No account? <a href="#" onclick="showSignup()">Sign up</a></p>
                 </div>
 
@@ -84,6 +85,7 @@
                     </p>
                     <input type="password" id="signup-pass" placeholder="Password">
                     <button id="do-signup" class="auth-btn signup">Register</button>
+                    <div id="auth-error-signup" class="auth-error"></div>
                     <p>Have an account? <a href="#" onclick="showLogin()">Login</a></p>
                 </div>
 
@@ -92,6 +94,7 @@
                     <p id="otp-hint" style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--primary); font-weight: bold;"></p>
                     <input type="text" id="otp-code" placeholder="4-Digit Code" maxlength="4" style="text-align: center; letter-spacing: 5px; font-size: 1.5rem;">
                     <button id="verify-otp" class="auth-btn signup">Verify & Register</button>
+                    <div id="auth-error-otp" class="auth-error"></div>
                     <p><a href="#" onclick="showSignup()">Back to Signup</a></p>
                 </div>
                 <div id="auth-error" class="auth-error"></div>
