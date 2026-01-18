@@ -37,10 +37,6 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     <span>Profile</span>
                 </a>
-                <a href="#" class="menu-item" onclick="navTo('wallet')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 15h0M2 9.5h20"></path></svg>
-                    <span>Wallet</span>
-                </a>
                 <a href="#" class="menu-item" onclick="navTo('deposit')">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
                     <span>Deposit</span>
@@ -145,36 +141,6 @@
                         <div class="profile-stat-item">
                             <span class="stat-label">Total Wins</span>
                             <span class="stat-value">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wallet Screen -->
-            <div id="wallet-screen" class="wallet-screen">
-                <div class="selection-header">
-                    <button class="back-btn" onclick="navTo('stake')">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    </button>
-                    <div class="selection-title">Wallet</div>
-                </div>
-                <div class="wallet-content">
-                    <div class="wallet-card">
-                        <span class="wallet-label">Current Balance</span>
-                        <div class="wallet-balance-row">
-                            <span class="wallet-currency">ETB</span>
-                            <span id="wallet-balance-value" class="wallet-balance">0.00</span>
-                        </div>
-                    </div>
-                    
-                    <div class="history-section">
-                        <h3 style="margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Balance History
-                        </h3>
-                        <div id="balance-history-list" class="history-list">
-                            <!-- History items injected by JS -->
-                            <p class="empty-msg">No transactions yet.</p>
                         </div>
                     </div>
                 </div>
