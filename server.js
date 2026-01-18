@@ -372,6 +372,12 @@ app.post('/telegram-webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
+// SMS Webhook Endpoint
+app.post('/sms-webhook', async (req, res) => {
+    console.log("SMS Webhook received:", req.body);
+    res.status(200).send("OK");
+});
+
 // Set Webhook on startup
 async function setTelegramWebhook() {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
