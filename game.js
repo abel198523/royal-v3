@@ -680,16 +680,21 @@ let userBalance = 0;
 
 function updateUserData(data) {
     userBalance = parseFloat(data.balance);
-    const balanceEl = document.getElementById('sel-balance');
-    const walletBalanceEl = document.getElementById('wallet-balance-value');
+    const balanceElements = [
+        document.getElementById('sel-balance'),
+        document.getElementById('wallet-balance-value'),
+        document.getElementById('withdraw-balance-value'),
+        document.getElementById('walletBalance')
+    ];
+    
+    balanceElements.forEach(el => {
+        if (el) el.innerText = userBalance.toFixed(2);
+    });
+
     const profilePhoneEl = document.getElementById('profile-phone-number');
     const profileUserTop = document.getElementById('profile-username-top');
     const stakeUserTop = document.getElementById('stake-username');
-    const withdrawBalanceEl = document.getElementById('withdraw-balance-value');
     
-    if(balanceEl) balanceEl.innerText = userBalance.toFixed(2);
-    if(walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
-    if(withdrawBalanceEl) withdrawBalanceEl.innerText = userBalance.toFixed(2);
     if(profilePhoneEl) profilePhoneEl.innerText = data.telegram_chat_id || data.phone_number || data.username;
     if(profileUserTop) profileUserTop.innerText = data.name || data.username;
     if(stakeUserTop) stakeUserTop.innerText = data.name || data.username;

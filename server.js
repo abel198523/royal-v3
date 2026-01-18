@@ -239,13 +239,6 @@ app.post('/telegram-webhook', async (req, res) => {
                         const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
                         const currentBalance = parseFloat(userRes.rows[0].balance || 0);
                         
-                        // WebSocket Notify
-                        wss.clients.forEach(client => {
-                            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
-                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: currentBalance }));
-                            }
-                        });
-
                         // Telegram Notify User
                         if (userRes.rows[0].telegram_chat_id) {
                             fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -260,6 +253,13 @@ app.post('/telegram-webhook', async (req, res) => {
 
                         await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', depositAmount, currentBalance, `Approved via Telegram (${method})`]);
                         await db.query('COMMIT');
+
+                        // WebSocket Notify (Move after COMMIT for data consistency)
+                        wss.clients.forEach(client => {
+                            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
+                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: currentBalance }));
+                            }
+                        });
 
                         // Edit admin message
                         fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
