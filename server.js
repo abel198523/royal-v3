@@ -57,7 +57,7 @@ app.post('/telegram-webhook', async (req, res) => {
     if (!botToken) return res.sendStatus(500);
     
     const update = req.body;
-    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://fidel-bingo.onrender.com');
+    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.RENDER_EXTERNAL_URL);
 
     if (update.message && update.message.text === '/start') {
         const chatId = update.message.chat.id;
@@ -92,7 +92,7 @@ app.post('/telegram-webhook', async (req, res) => {
 // Set Webhook on startup
 async function setTelegramWebhook() {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://fidel-bingo.onrender.com');
+    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.RENDER_EXTERNAL_URL);
     
     if (botToken && webUrl) {
         const telegramUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${webUrl}/telegram-webhook`;
