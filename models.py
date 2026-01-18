@@ -4,7 +4,6 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-    phone_number = db.Column(db.String(20), unique=True)
     telegram_chat_id = db.Column(db.String(64), unique=True)
     balance = db.Column(db.Float, default=0.0)
     is_admin = db.Column(db.Boolean, default=False)
