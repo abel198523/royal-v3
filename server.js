@@ -116,7 +116,7 @@ app.post('/telegram-webhook', async (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: chatId,
-                    text: `እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: \`${chatId}\``,
+                    text: `እንኳን ወደ ROYAL BINGO በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: \`${chatId}\``,
                     parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [
@@ -160,7 +160,8 @@ app.post('/telegram-webhook', async (req, res) => {
                 })
             });
         } else if (text === "👥 ጓደኛ ጋብዝ (Referral)") {
-            const botUsername = "royalBingov2_bot";
+            const botInfo = await fetch(`https://api.telegram.org/bot${botToken}/getMe`).then(res => res.json());
+            const botUsername = botInfo.result ? botInfo.result.username : "royalBingov2_bot";
             const referralLink = `https://t.me/${botUsername}?start=${chatId}`;
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
@@ -418,7 +419,7 @@ app.post('/api/signup-request', async (req, res) => {
         const response = await fetch(telegramUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: telegram_chat_id, text: `የ Fidel Bingo ማረጋገጫ ኮድ: ${otp}` })
+            body: JSON.stringify({ chat_id: telegram_chat_id, text: `የ ROYAL BINGO ማረጋገጫ ኮድ: ${otp}` })
         });
         const respData = await response.json();
         if (!respData.ok) return res.status(400).json({ error: "ለዚህ Chat ID መልዕክት መላክ አልተቻለም።" });
