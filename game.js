@@ -283,9 +283,9 @@ socket.onmessage = (event) => {
         };
     }
 
-    const submitWithdraw = document.getElementById('submit-withdraw');
-    if (submitWithdraw) {
-        submitWithdraw.onclick = async () => {
+    const submitWithdrawElement = document.getElementById('submit-withdraw');
+    if (submitWithdrawElement) {
+        submitWithdrawElement.onclick = async () => {
             const amount = document.getElementById('withdraw-amount').value;
             const method = document.getElementById('withdraw-method').value;
             const account = document.getElementById('withdraw-account').value;
@@ -615,6 +615,17 @@ function initApp() {
     createStakeList();
     createAvailableCards();
 
+    // Check if user is already logged in
+    const token = localStorage.getItem('bingo_token');
+    if (token) {
+        // We might want to verify token or fetch user data here
+        // For now, let's assume it's valid if present
+        document.getElementById('auth-screen').classList.remove('active');
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        navTo('stake');
+    }
+
     const menuTriggers = document.querySelectorAll('.menu-trigger');
     const sideMenu = document.getElementById('side-menu');
     const overlay = document.getElementById('menu-overlay');
@@ -672,12 +683,19 @@ function updateUserData(data) {
     const profilePhoneEl = document.getElementById('profile-phone-number');
     const profileUserTop = document.getElementById('profile-username-top');
     const stakeUserTop = document.getElementById('stake-username');
+    const withdrawBalanceEl = document.getElementById('withdraw-balance-value');
     
     if(balanceEl) balanceEl.innerText = userBalance.toFixed(2);
     if(walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
-    if(profilePhoneEl) profilePhoneEl.innerText = data.phone_number || data.username;
+    if(withdrawBalanceEl) withdrawBalanceEl.innerText = userBalance.toFixed(2);
+    if(profilePhoneEl) profilePhoneEl.innerText = data.telegram_chat_id || data.phone_number || data.username;
     if(profileUserTop) profileUserTop.innerText = data.name || data.username;
     if(stakeUserTop) stakeUserTop.innerText = data.name || data.username;
+    
+    const profileFullName = document.getElementById('profile-full-name');
+    if (profileFullName) profileFullName.innerText = data.name || 'User';
+    const profileId = document.getElementById('profile-player-id');
+    if (profileId) profileId.innerText = `ID: ${data.player_id || '--'}`;
 }
 
 function navTo(screenId) {
