@@ -26,7 +26,8 @@
                 <div class="card shadow-sm mb-4">
                     <div class="card-body text-center">
                         <h5 class="card-title">{{ room.name }}</h5>
-                        <p class="card-text text-primary fw-bold">Price: {{ room.card_price }} ETB</p>
+                        <p class="card-text text-primary fw-bold">Bet: {{ room.card_price }} ETB</p>
+                        <p class="card-text text-muted small">Players: <span id="playerCount-{{ room.id }}">0</span></p>
                         <button onclick="buyCard({{ room.id }})" class="btn btn-success">Buy Card</button>
                     </div>
                 </div>
@@ -45,6 +46,9 @@
             
             if (data.success) {
                 document.getElementById('walletBalance').innerText = data.new_balance;
+                if (data.players !== undefined) {
+                    document.getElementById(`playerCount-${roomId}`).innerText = data.players;
+                }
                 messageDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
             } else {
                 messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;

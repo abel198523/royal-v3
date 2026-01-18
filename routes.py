@@ -18,13 +18,8 @@ def index():
 
 @app.route("/buy-card/<int:room_id>", methods=["POST"])
 def buy_card(room_id):
-    # For demo purposes, we'll use a hardcoded user_id=1
-    user = User.query.get(1)
-    if not user:
-        # Create a default user if not exists for testing
-        user = User(username="testuser", balance=1000.0)
-        db.session.add(user)
-        db.session.commit()
+    # In a real app, we'd get this from the logged-in user session
+    user = User.query.filter(User.balance > 0).first() or User.query.get(1)
     
     room = Room.query.get_or_404(room_id)
     
@@ -33,7 +28,17 @@ def buy_card(room_id):
         transaction = Transaction(user_id=user.id, room_id=room.id, amount=room.card_price)
         db.session.add(transaction)
         db.session.commit()
-        return jsonify({"success": True, "new_balance": user.balance, "message": f"Purchased card for {room.name} at {room.card_price}"})
+        
+        # Count players in this room based on recent transactions
+        player_count = db.session.query(db.func.count(db.distinct(Transaction.user_id))).filter(Transaction.room_id == room.id).scalar()
+        
+        return jsonify({
+            "success": True, 
+            "new_balance": user.balance, 
+            "message": f"Purchased card for {room.name} at {room.card_price}",
+            "players": player_count,
+            "bet": room.card_price
+        })
     
     return jsonify({"success": False, "message": "Insufficient balance"}), 400
 
