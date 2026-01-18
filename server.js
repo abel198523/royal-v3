@@ -84,14 +84,63 @@ app.post('/telegram-webhook', async (req, res) => {
                 text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: `" + chatId + "`",
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: "ወደ ዌብሳይቱ ይሂዱ", url: webUrl }
-                        ]
-                    ]
+                    keyboard: [
+                        [{ text: "💰 ባላንስ ቼክ (Balance)" }],
+                        [{ text: "➕ ብር መሙላት (Deposit)" }, { text: "➖ ብር ማውጣት (Withdraw)" }],
+                        [{ text: "🎮 ወደ ዌብሳይቱ ሂድ" }]
+                    ],
+                    resize_keyboard: true
                 }
             })
         });
+    }
+
+    if (update.message && update.message.text) {
+        const text = update.message.text;
+        const chatId = update.message.chat.id;
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+        const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.RENDER_EXTERNAL_URL);
+
+        if (text === "💰 ባላንስ ቼክ (Balance)") {
+            const result = await db.query("SELECT balance FROM users WHERE telegram_chat_id = $1", [chatId.toString()]);
+            const balance = result.rows.length > 0 ? result.rows[0].balance : 0;
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `💰 የእርስዎ ባላንስ: ${balance} ETB`
+                })
+            });
+        } else if (text === "➕ ብር መሙላት (Deposit)") {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `➕ ብር ለመሙላት እባክዎ ዌብሳይቱ ላይ የ "Deposit" ገጽን ይጠቀሙ።\n\nሊንክ: ${webUrl}`
+                })
+            });
+        } else if (text === "➖ ብር ማውጣት (Withdraw)") {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `➖ ብር ለማውጣት እባክዎ ዌብሳይቱ ላይ የ "Withdraw" ገጽን ይጠቀሙ።\n\nሊንክ: ${webUrl}`
+                })
+            });
+        } else if (text === "🎮 ወደ ዌብሳይቱ ሂድ") {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `🎮 ወደ Fidel Bingo ዌብሳይት ለመሄድ ከታች ያለውን ሊንክ ይጫኑ፦\n\n${webUrl}`
+                })
+            });
+        }
     }
     
     if (update.message && update.message.contact) {
