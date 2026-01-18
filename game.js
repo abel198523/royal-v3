@@ -219,9 +219,27 @@ socket.onmessage = (event) => {
         state.currentCardData = null;
         state.lastHistory = [];
         
-        // Ensure game board is cleared for the next session
+        // Ensure game board and all lists are cleared for the next session
         const masterGrid = document.getElementById('master-grid');
         if (masterGrid) masterGrid.innerHTML = '';
+        
+        const bingoBoard = document.getElementById('bingo-board');
+        if (bingoBoard) bingoBoard.innerHTML = '';
+        
+        const recentBalls = document.getElementById('recent-balls');
+        if (recentBalls) recentBalls.innerHTML = '';
+        
+        const activeBall = document.getElementById('active-ball');
+        if (activeBall) activeBall.innerHTML = '<span>--</span>';
+        
+        const callCount = document.getElementById('call-count');
+        if (callCount) callCount.innerText = '0';
+        
+        const progressText = document.getElementById('progress-text');
+        if (progressText) progressText.innerText = '0/75';
+        
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) progressBar.style.width = '0%';
         
         if (data.room == currentRoom || !data.room) {
             showWinnerModal(data.winner, data.winCard, data.winPattern);
