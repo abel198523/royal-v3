@@ -5,7 +5,14 @@ from models import User, Room, Transaction
 @app.route("/")
 def index():
     rooms = Room.query.all()
-    return render_template("index.html", rooms=rooms)
+    # For demo purposes, we'll use a hardcoded user_id=1
+    user = User.query.get(1)
+    if not user:
+        # Create a default user if not exists for testing
+        user = User(username="testuser", balance=1000.0)
+        db.session.add(user)
+        db.session.commit()
+    return render_template("index.html", rooms=rooms, balance=user.balance)
 
 @app.route("/buy-card/<int:room_id>", methods=["POST"])
 def buy_card(room_id):
