@@ -441,9 +441,11 @@ app.post('/api/signup-verify', async (req, res) => {
         const finalPhone = phone || telegram_chat_id;
         const signupBonus = 10.0;
         
+        // Ensure table columns match our schema (id, balance, is_admin, username, telegram_chat_id, name, player_id, phone_number, password_hash, referred_by)
+        // Wait, the table might be missing columns. Let's try to align with what we found.
         const result = await db.query(
-            'INSERT INTO users (phone_number, password_hash, username, name, balance, player_id, telegram_chat_id, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [finalPhone, hash, finalPhone, name, signupBonus, playerId, telegram_chat_id, referredBy]
+            'INSERT INTO users (username, telegram_chat_id, name, balance, player_id, phone_number, password_hash, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [finalPhone, telegram_chat_id, name, signupBonus, playerId, finalPhone, hash, referredBy]
         );
         
         const user = result.rows[0];
