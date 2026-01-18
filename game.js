@@ -497,6 +497,19 @@ if (verifyOtpBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...signupData, otp })
             });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('bingo_token', data.token);
+                localStorage.setItem('bingo_user', JSON.stringify(data));
+                window.location.reload();
+            } else {
+                if (errorEl) errorEl.innerText = data.error || "የማረጋገጫ ስህተት";
+            }
+        } catch (err) {
+            if (errorEl) errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+        }
+    };
+}
 
 // Initialize App
 function initApp() {
@@ -513,19 +526,6 @@ function initApp() {
     }
 }
 
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('bingo_token', data.token);
-                localStorage.setItem('bingo_user', JSON.stringify(data));
-                window.location.reload();
-            } else {
-                if (errorEl) errorEl.innerText = data.error || "የማረጋገጫ ስህተት";
-            }
-        } catch (err) {
-            if (errorEl) errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
-        }
-    };
-}
 
 // Auth State Check
 window.onload = () => {
