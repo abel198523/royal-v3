@@ -189,7 +189,8 @@ app.post('/telegram-webhook', async (req, res) => {
                 })
             });
         } else if (text === "👥 ጓደኛ ጋብዝ (Referral)") {
-            const referralLink = `https://t.me/${process.env.TELEGRAM_BOT_USERNAME}?start=${chatId}`;
+            const botUsername = process.env.TELEGRAM_BOT_USERNAME || "FidelBingoBot";
+            const referralLink = `https://t.me/${botUsername}?start=${chatId}`;
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
