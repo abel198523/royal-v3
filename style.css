@@ -240,6 +240,20 @@ body {
     flex-direction: column;
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.refresh-btn-wallet:hover {
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
+.refresh-btn-wallet:active {
+    transform: scale(0.9);
+}
+
 .winner-card-preview {
     margin: 20px auto;
     background: #0f172a;

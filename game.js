@@ -542,6 +542,44 @@ window.closeCustomAlert = function() {
     if (alertOverlay) alertOverlay.classList.remove('active');
 };
 
+window.manualRefreshBalance = async function() {
+    const btn = document.querySelector('.refresh-btn-wallet');
+    if (btn) {
+        btn.style.animation = 'spin 1s linear infinite';
+        btn.disabled = true;
+    }
+    
+    try {
+        const token = localStorage.getItem('bingo_token');
+        const response = await fetch('/api/user/balance', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.balance !== undefined) {
+            userBalance = data.balance;
+            const balanceEl = document.getElementById('sel-balance');
+            const walletBalanceEl = document.getElementById('wallet-balance-value');
+            const indexBalanceEl = document.getElementById('walletBalance');
+            const withdrawBalanceEl = document.getElementById('withdraw-balance-value');
+            
+            if (balanceEl) balanceEl.innerText = userBalance.toFixed(2);
+            if (walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
+            if (indexBalanceEl) indexBalanceEl.innerText = userBalance.toFixed(2);
+            if (withdrawBalanceEl) withdrawBalanceEl.innerText = userBalance.toFixed(2);
+            
+            showToast("ባላንስ ታድሷል (Balance Refreshed)");
+        }
+    } catch (e) {
+        console.error("Balance refresh failed", e);
+        showToast("ማደስ አልተቻለም (Refresh Failed)");
+    } finally {
+        if (btn) {
+            btn.style.animation = 'none';
+            btn.disabled = false;
+        }
+    }
+};
+
 function showCardPreview(num) {
     if (userBalance < currentRoom) {
         showCustomAlert("ባላንስ የሎትም", "ይቅርታ፣ ካርድ ለመግዛት በቂ ብር የለዎትም። እባክዎ መጀመሪያ አካውንትዎን ይሙሉ።", "low_balance");
