@@ -3,15 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+    <title>Room Selection</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
-        <div class="text-center">
-            <h1>Welcome to Your Flask Application</h1>
-            <p class="lead">Your application is running successfully.</p>
+        <div class="text-center mb-5">
+            <h1>Game Rooms</h1>
+            <p class="lead">Select a room to purchase a card. Each room has its own price.</p>
         </div>
+
+        <div class="row">
+            {% for room in rooms %}
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ room.name }}</h5>
+                        <p class="card-text text-primary fw-bold">Price: {{ room.card_price }} ETB</p>
+                        <button onclick="buyCard({{ room.id }})" class="btn btn-success">Buy Card</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="statusMessage" class="mt-4 text-center"></div>
     </div>
+
+    <script>
+        async function buyCard(roomId) {
+            const response = await fetch(`/buy-card/${roomId}`, { method: 'POST' });
+            const data = await response.json();
+            const messageDiv = document.getElementById('statusMessage');
+            
+            if (data.success) {
+                messageDiv.innerHTML = `<div class="alert alert-success">${data.message}. New Balance: ${data.new_balance}</div>`;
+            } else {
+                messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            }
+        }
+    </script>
 </body>
 </html>
