@@ -653,6 +653,7 @@ app.post('/api/withdraw-request', async (req, res) => {
             return res.status(400).json({ error: "በቂ ባላንስ የልዎትም" });
         }
 
+        // ALL USERS must meet these requirements
         // Check deposit history for 100 ETB
         const depositHistory = await db.query('SELECT SUM(amount) as total_dep FROM deposit_requests WHERE user_id = $1 AND status = \'approved\'', [decoded.id]);
         const totalDeposited = parseFloat(depositHistory.rows[0].total_dep || 0);
@@ -664,7 +665,7 @@ app.post('/api/withdraw-request', async (req, res) => {
         if (totalDeposited < 100 || totalWins < 2) {
             await db.query('ROLLBACK');
             return res.status(400).json({ 
-                error: "መስፈርቱን አላሟሉም! ገንዘብ ለማውጣት ቢያንስ 100 ብር ዲፖዚት ማድረግ እና 2 ጊዜ ማሸነፍ (ሁለቱንም በአንድላይ) ይጠበቅብዎታል" 
+                error: "መስፈርቱን አላሟሉም! ገንዘብ ለማውጣት ቢያንስ 100 ብር ዲፖዚት ማድረግ እና ቢያንስ 2 ጊዜ በጨዋታ ማሸነፍ (ሁለቱንም በአንድላይ) ይጠበቅብዎታል" 
             });
         }
         
