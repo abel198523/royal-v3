@@ -17,8 +17,12 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not TOKEN:
     logger.error("TELEGRAM_BOT_TOKEN is not set in environment variables!")
-    # In a local/replit environment, we can't do much without a token.
-    # However, on Render, it must be provided.
+    # In a local/replit environment, we'll keep the process alive but idle
+    # to avoid workflow restart loops, while logging the error.
+    import time
+    while True:
+        logger.error("Waiting for TELEGRAM_BOT_TOKEN...")
+        time.sleep(60)
     exit(1) 
 
 logger.info(f"Starting bot with token prefix: {TOKEN[:5]}...")

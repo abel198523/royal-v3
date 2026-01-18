@@ -11,9 +11,17 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const SECRET_KEY = process.env.SESSION_SECRET || "bingo_secret_123";
+const SECRET_KEY = process.env.SESSION_SECRET || process.env.JWT_SECRET || "bingo_secret_123";
+const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// Trust proxy for Render/Replit
+app.set('trust proxy', 1);
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+});
 
 const STAKES = [5, 10, 20, 30, 40, 50, 100, 200, 500];
 let rooms = {};
