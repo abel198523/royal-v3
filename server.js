@@ -223,6 +223,60 @@ app.post('/telegram-webhook', async (req, res) => {
                 if (action === 'approve') await db.query('ROLLBACK');
                 console.error("Bot action error:", err);
             }
+        if (callbackData.startsWith('approve_wd_') || callbackData.startsWith('reject_wd_')) {
+            const action = callbackData.startsWith('approve_wd_') ? 'approve' : 'reject';
+            const withdrawId = callbackData.replace('approve_wd_', '').replace('reject_wd_', '');
+            const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+            try {
+                await db.query('BEGIN');
+                const withdraw = await db.query('SELECT * FROM withdraw_requests WHERE id = $1 AND status = $2', [withdrawId, 'pending']);
+                if (withdraw.rows.length > 0) {
+                    const { user_id, amount } = withdraw.rows[0];
+                    const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
+                    
+                    if (action === 'approve') {
+                        await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['approved', withdrawId]);
+                        if (userRes.rows[0].telegram_chat_id) {
+                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chat_id: userRes.rows[0].telegram_chat_id,
+                                    text: `✅ የዊዝድሮው (Withdraw) ጥያቄዎ ተቀባይነት አግኝቷል!\n\nመጠን: ${amount} ETB\n\nገንዘቡ በቅርቡ ይላክልዎታል።`
+                                })
+                            }).catch(e => {});
+                        }
+                    } else {
+                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
+                        await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['rejected', withdrawId]);
+                        if (userRes.rows[0].telegram_chat_id) {
+                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chat_id: userRes.rows[0].telegram_chat_id,
+                                    text: `❌ የዊዝድሮው (Withdraw) ጥያቄዎ ውድቅ ተደርጓል!\n\nመጠን: ${amount} ETB ተመላሽ ሆኗል።`
+                                })
+                            }).catch(e => {});
+                        }
+                    }
+                    await db.query('COMMIT');
+
+                    fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            message_id: messageId,
+                            text: update.callback_query.message.text + `\n\n${action === 'approve' ? '✅ ጸድቋል' : '❌ ውድቅ ተደርጓል'}`
+                        })
+                    }).catch(e => {});
+                }
+            } catch (err) {
+                await db.query('ROLLBACK');
+                console.error("Withdraw bot error:", err);
+            }
         }
     }
 
@@ -523,6 +577,64 @@ app.post('/api/admin/update-balance', adminOnly, async (req, res) => {
     } catch (err) { res.status(500).json({ error: "ስህተት" }); }
 });
 
+// Admin: Get all withdrawals
+app.get('/api/admin/withdrawals', adminOnly, async (req, res) => {
+    try {
+        const result = await db.query('SELECT wr.*, u.phone_number, u.name, u.telegram_chat_id FROM withdraw_requests wr JOIN users u ON wr.user_id = u.id WHERE wr.status = \'pending\' ORDER BY wr.created_at DESC');
+        res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: "መረጃውን ማምጣት አልተቻለም" }); }
+});
+
+// Admin: Handle withdrawal (Approve/Reject)
+app.post('/api/admin/handle-withdraw', adminOnly, async (req, res) => {
+    const { withdrawId, action, reason } = req.body;
+    try {
+        await db.query('BEGIN');
+        const withdraw = await db.query('SELECT * FROM withdraw_requests WHERE id = $1 AND status = $2', [withdrawId, 'pending']);
+        if (withdraw.rows.length === 0) throw new Error("ጥያቄው አልተገኘም ወይም ቀደም ብሎ ተስተናግዷል");
+        
+        const { user_id, amount, method } = withdraw.rows[0];
+        const userRes = await db.query('SELECT balance, name, telegram_chat_id FROM users WHERE id = $1', [user_id]);
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+        if (action === 'approve') {
+            await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['approved', withdrawId]);
+            await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'withdrawal_approved', amount, userRes.rows[0].balance, `Approved Withdrawal ID: ${withdrawId}`]);
+            
+            if (botToken && userRes.rows[0].telegram_chat_id) {
+                fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: userRes.rows[0].telegram_chat_id,
+                        text: `✅ የዊዝድሮው (Withdraw) ጥያቄዎ ተቀባይነት አግኝቷል!\n\nመጠን: ${amount} ETB\n\nገንዘቡ በቅርቡ ይላክልዎታል።`
+                    })
+                }).catch(e => {});
+            }
+        } else {
+            // Refund the balance
+            await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
+            await db.query('UPDATE withdraw_requests SET status = $1, admin_note = $2 WHERE id = $3', ['rejected', reason || "ውድቅ ተደርጓል", withdrawId]);
+            const newBal = parseFloat(userRes.rows[0].balance) + parseFloat(amount);
+            await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'withdrawal_refund', amount, newBal, `Rejected Withdrawal ID: ${withdrawId}. Reason: ${reason}`]);
+            
+            if (botToken && userRes.rows[0].telegram_chat_id) {
+                fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: userRes.rows[0].telegram_chat_id,
+                        text: `❌ የዊዝድሮው (Withdraw) ጥያቄዎ ውድቅ ተደርጓል!\n\nምክንያት: ${reason || "አልተገለጸም"}\nመጠን: ${amount} ETB ተመላሽ ሆኗል።`
+                    })
+                }).catch(e => {});
+            }
+        }
+        await db.query('COMMIT');
+        res.json({ message: "ተጠናቋል" });
+    } catch (err) { await db.query('ROLLBACK'); res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/withdraw-request', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: "Login required" });
@@ -533,51 +645,51 @@ app.post('/api/withdraw-request', async (req, res) => {
         if (amount < 50) return res.status(400).json({ error: "ዝቅተኛው የዊዝድሮው መጠን 50 ብር ነው" });
         
         await db.query('BEGIN');
-        const user = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
-        if (user.rows[0].balance < amount) {
+        const userResult = await db.query('SELECT balance, name FROM users WHERE id = $1', [decoded.id]);
+        if (userResult.rows[0].balance < amount) {
             await db.query('ROLLBACK');
             return res.status(400).json({ error: "በቂ ባላንስ የልዎትም" });
         }
         
         await db.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [amount, decoded.id]);
-        await db.query('INSERT INTO withdraw_requests (user_id, amount, method, account_details, status) VALUES ($1, $2, $3, $4, $5)', [decoded.id, amount, method, account, 'pending']);
+        const insertRes = await db.query('INSERT INTO withdraw_requests (user_id, amount, method, account_details, status) VALUES ($1, $2, $3, $4, $5) RETURNING id', [decoded.id, amount, method, account, 'pending']);
+        const withdrawId = insertRes.rows[0].id;
         
-        const userRes = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
-        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [decoded.id, 'withdrawal', -amount, userRes.rows[0].balance, `Withdrawal Request (${method})`]);
+        const finalBalRes = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
+        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [decoded.id, 'withdrawal_request', -amount, finalBalRes.rows[0].balance, `Withdrawal Request (${method})`]);
         
         await db.query('COMMIT');
-        res.json({ message: "የዊዝድሮው ጥያቄዎ በትክክል ተልኳል፤ አድሚኑ እስኪያጸድቅልዎ ይጠብቁ" });
+
+        // Notify Admins via Telegram
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (botToken) {
+            const adminResult = await db.query("SELECT telegram_chat_id FROM users WHERE is_admin = TRUE");
+            const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+            adminResult.rows.forEach(admin => {
+                if (admin.telegram_chat_id) {
+                    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: admin.telegram_chat_id,
+                            text: `💸 አዲስ የዊዝድሮው (Withdraw) ጥያቄ!\n\nተጫዋች: ${userResult.rows[0].name || decoded.username}\nመጠን: ${amount} ETB\nዘዴ: ${method}\nዝርዝር: ${account}\n\nእባክዎ ወደ አድሚን ፓናል በመግባት ያጽድቁ።`,
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: "✅ አጽድቅ (Approve)", callback_data: `approve_wd_${withdrawId}` }, { text: "❌ ውድቅ አድርግ (Reject)", callback_data: `reject_wd_${withdrawId}` }]
+                                ]
+                            }
+                        })
+                    }).catch(e => {});
+                }
+            });
+        }
+
+        res.json({ message: "የዊዝድሮው ጥያቄዎ በትክክል ተልኳል፤ አድሚኑ እስኪያጸድቅልዎ ይጠብቁ", balance: finalBalRes.rows[0].balance });
     } catch (err) { 
         await db.query('ROLLBACK'); 
         console.error("Withdraw Error:", err);
         res.status(500).json({ error: "ጥያቄውን መላክ አልተቻለም" }); 
     }
-});
-
-app.get('/api/admin/withdrawals', adminOnly, async (req, res) => {
-    try {
-        const result = await db.query('SELECT wr.*, u.phone_number, u.name FROM withdraw_requests wr JOIN users u ON wr.user_id = u.id WHERE wr.status = \'pending\' ORDER BY wr.created_at DESC');
-        res.json(result.rows);
-    } catch (err) { res.status(500).json({ error: "ስህተት" }); }
-});
-
-app.post('/api/admin/handle-withdraw', adminOnly, async (req, res) => {
-    const { withdrawId, action } = req.body;
-    try {
-        await db.query('BEGIN');
-        const withdraw = await db.query('SELECT * FROM withdraw_requests WHERE id = $1', [withdrawId]);
-        if (withdraw.rows.length === 0) throw new Error("አልተገኘም");
-        if (action === 'approve') await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['approved', withdrawId]);
-        else {
-            const { user_id, amount } = withdraw.rows[0];
-            await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
-            await db.query('UPDATE withdraw_requests SET status = $1 WHERE id = $2', ['rejected', withdrawId]);
-            const userRes = await db.query('SELECT balance FROM users WHERE id = $1', [user_id]);
-            await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'refund', amount, userRes.rows[0].balance, 'Refund']);
-        }
-        await db.query('COMMIT');
-        res.json({ message: "ተጠናቋል" });
-    } catch (err) { await db.query('ROLLBACK'); res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/balance-history', async (req, res) => {
