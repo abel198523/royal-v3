@@ -99,6 +99,7 @@ app.post('/telegram-webhook', async (req, res) => {
         const chatId = update.message.chat.id;
         const phoneNumber = contact.phone_number.replace('+', '');
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
         const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.RENDER_EXTERNAL_URL);
         const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
