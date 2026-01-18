@@ -223,6 +223,8 @@ app.post('/telegram-webhook', async (req, res) => {
                 if (action === 'approve') await db.query('ROLLBACK');
                 console.error("Bot action error:", err);
             }
+        } // Added missing closing brace for if (callbackData.startsWith('approve_dep_'))
+
         if (callbackData.startsWith('approve_wd_') || callbackData.startsWith('reject_wd_')) {
             const action = callbackData.startsWith('approve_wd_') ? 'approve' : 'reject';
             const withdrawId = callbackData.replace('approve_wd_', '').replace('reject_wd_', '');
