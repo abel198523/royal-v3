@@ -266,9 +266,13 @@ app.post('/api/deposit-request', async (req, res) => {
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
         const { amount, method, code } = req.body;
-        await db.query('INSERT INTO deposit_requests (user_id, amount, method, transaction_code) VALUES ($1, $2, $3, $4)', [decoded.id, amount, method, code]);
-        res.json({ message: "ተልኳል" });
-    } catch (err) { res.status(500).json({ error: "ስህተት" }); }
+        if (!amount || !method || !code) return res.status(400).json({ error: "ሁሉም መረጃዎች መሞላት አለባቸው" });
+        await db.query('INSERT INTO deposit_requests (user_id, amount, method, transaction_code, status) VALUES ($1, $2, $3, $4, $5)', [decoded.id, amount, method, code, 'pending']);
+        res.json({ message: "የዲፖዚት ጥያቄዎ በትክክል ተልኳል፤ አድሚኑ እስኪያጸድቅልዎ ይጠብቁ" });
+    } catch (err) { 
+        console.error("Deposit Error:", err);
+        res.status(500).json({ error: "ጥያቄውን መላክ አልተቻለም" }); 
+    }
 });
 
 app.post('/api/admin/update-balance', adminOnly, async (req, res) => {
@@ -286,17 +290,29 @@ app.post('/api/withdraw-request', async (req, res) => {
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
         const { amount, method, account } = req.body;
-        if (amount < 50) return res.status(400).json({ error: "Min 50" });
+        if (!amount || !method || !account) return res.status(400).json({ error: "ሁሉም መረጃዎች መሞላት አለባቸው" });
+        if (amount < 50) return res.status(400).json({ error: "ዝቅተኛው የዊዝድሮው መጠን 50 ብር ነው" });
+        
         await db.query('BEGIN');
         const user = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
-        if (user.rows[0].balance < amount) throw new Error("በቂ ባላንስ የልዎትም");
+        if (user.rows[0].balance < amount) {
+            await db.query('ROLLBACK');
+            return res.status(400).json({ error: "በቂ ባላንስ የልዎትም" });
+        }
+        
         await db.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [amount, decoded.id]);
-        await db.query('INSERT INTO withdraw_requests (user_id, amount, method, account_details) VALUES ($1, $2, $3, $4)', [decoded.id, amount, method, account]);
+        await db.query('INSERT INTO withdraw_requests (user_id, amount, method, account_details, status) VALUES ($1, $2, $3, $4, $5)', [decoded.id, amount, method, account, 'pending']);
+        
         const userRes = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
         await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [decoded.id, 'withdrawal', -amount, userRes.rows[0].balance, `Withdrawal Request (${method})`]);
+        
         await db.query('COMMIT');
-        res.json({ message: "ተልኳል" });
-    } catch (err) { await db.query('ROLLBACK'); res.status(500).json({ error: err.message }); }
+        res.json({ message: "የዊዝድሮው ጥያቄዎ በትክክል ተልኳል፤ አድሚኑ እስኪያጸድቅልዎ ይጠብቁ" });
+    } catch (err) { 
+        await db.query('ROLLBACK'); 
+        console.error("Withdraw Error:", err);
+        res.status(500).json({ error: "ጥያቄውን መላክ አልተቻለም" }); 
+    }
 });
 
 app.get('/api/admin/withdrawals', adminOnly, async (req, res) => {
