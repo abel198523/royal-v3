@@ -837,6 +837,18 @@ app.post('/api/withdraw-request', async (req, res) => {
     }
 });
 
+app.get('/api/user/balance-history', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Login required" });
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const result = await db.query('SELECT * FROM balance_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [decoded.id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: "ስህተት" });
+    }
+});
+
 app.get('/api/user/profile', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: "Login required" });
@@ -859,6 +871,18 @@ app.get('/api/user/profile', async (req, res) => {
             total_games: parseInt(gamesRes.rows[0].total_games || 0),
             total_wins: parseInt(winsRes.rows[0].total_wins || 0)
         });
+    } catch (err) {
+        res.status(500).json({ error: "ስህተት" });
+    }
+});
+
+app.get('/api/user/balance-history', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Login required" });
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const result = await db.query('SELECT * FROM balance_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [decoded.id]);
+        res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: "ስህተት" });
     }

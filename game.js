@@ -205,7 +205,7 @@ socket.onmessage = (event) => {
             setTimeout(() => {
                 const modal = document.getElementById('winner-modal');
                 if (modal) modal.classList.remove('active');
-                const screens = ['game-screen', 'selection-screen', 'profile-screen'];
+                const screens = ['game-screen', 'selection-screen', 'profile-screen', 'wallet-screen'];
                 screens.forEach(s => {
                     const el = document.getElementById(s);
                     if (el) el.classList.remove('active');
@@ -229,8 +229,10 @@ socket.onmessage = (event) => {
     } else if (data.type === 'BALANCE_UPDATE') {
         userBalance = data.balance;
         const balanceEl = document.getElementById('sel-balance');
+        const walletBalanceEl = document.getElementById('wallet-balance-value');
         const indexBalanceEl = document.getElementById('walletBalance');
         if (balanceEl) balanceEl.innerText = userBalance.toFixed(2);
+        if (walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
         if (indexBalanceEl) indexBalanceEl.innerText = userBalance.toFixed(2);
     }
 };
@@ -357,7 +359,7 @@ socket.onmessage = (event) => {
     }
 
 function startGame() {
-    const screens = ['selection-screen', 'stake-screen', 'profile-screen', 'game-screen'];
+    const screens = ['selection-screen', 'stake-screen', 'profile-screen', 'wallet-screen', 'game-screen'];
     screens.forEach(s => {
         const el = document.getElementById(s);
         if (el) el.classList.remove('active');
@@ -679,12 +681,14 @@ let userBalance = 0;
 function updateUserData(data) {
     userBalance = parseFloat(data.balance);
     const balanceEl = document.getElementById('sel-balance');
+    const walletBalanceEl = document.getElementById('wallet-balance-value');
     const profilePhoneEl = document.getElementById('profile-phone-number');
     const profileUserTop = document.getElementById('profile-username-top');
     const stakeUserTop = document.getElementById('stake-username');
     const withdrawBalanceEl = document.getElementById('withdraw-balance-value');
     
     if(balanceEl) balanceEl.innerText = userBalance.toFixed(2);
+    if(walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
     if(withdrawBalanceEl) withdrawBalanceEl.innerText = userBalance.toFixed(2);
     if(profilePhoneEl) profilePhoneEl.innerText = data.telegram_chat_id || data.phone_number || data.username;
     if(profileUserTop) profileUserTop.innerText = data.name || data.username;
@@ -697,7 +701,7 @@ function updateUserData(data) {
 }
 
 function navTo(screenId) {
-    const screens = ['stake-screen', 'profile-screen', 'game-screen', 'selection-screen', 'admin-screen', 'deposit-screen', 'withdraw-screen'];
+    const screens = ['stake-screen', 'profile-screen', 'wallet-screen', 'game-screen', 'selection-screen', 'admin-screen', 'deposit-screen', 'withdraw-screen'];
     screens.forEach(s => {
         const el = document.getElementById(s);
         if (el) el.classList.remove('active');
@@ -707,6 +711,7 @@ function navTo(screenId) {
     if (target) target.classList.add('active');
     
     if (screenId === 'profile') loadProfileData();
+    if (screenId === 'wallet') loadBalanceHistory();
 
     const sideMenu = document.getElementById('side-menu');
     const overlay = document.getElementById('menu-overlay');
@@ -714,26 +719,42 @@ function navTo(screenId) {
     if (overlay) overlay.classList.remove('active');
 }
 
-async function loadProfileData() {
+async function loadBalanceHistory() {
     const token = localStorage.getItem('bingo_token');
+    const listEl = document.getElementById('balance-history-list');
+    if (!listEl) return;
+    
     try {
-        const response = await fetch('/api/user/profile', {
+        const res = await fetch('/api/user/balance-history', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-        if (response.ok) {
-            document.getElementById('profile-username-top').innerText = data.username;
-            document.getElementById('profile-full-name').innerText = data.name || data.username;
-            document.getElementById('profile-player-id').innerText = `ID: ${data.player_id || '--'}`;
-            document.getElementById('profile-phone-number').innerText = data.phone || '--';
-            
-            const stats = document.querySelectorAll('.profile-stat-item .stat-value');
-            if (stats.length >= 2) {
-                stats[0].innerText = data.total_games;
-                stats[1].innerText = data.total_wins;
-            }
+        const history = await res.json();
+        
+        if (!res.ok) throw new Error(history.error);
+        
+        if (history.length === 0) {
+            listEl.innerHTML = '<p class="empty-msg">No transactions yet.</p>';
+            return;
         }
-    } catch (err) { console.error("Profile load error:", err); }
+        
+        listEl.innerHTML = history.map(h => `
+            <div class="history-item">
+                <div class="hist-main">
+                    <span class="hist-type ${h.type.toLowerCase()}">${h.type.toUpperCase()}</span>
+                    <span class="hist-desc">${h.description || ''}</span>
+                </div>
+                <div class="hist-meta">
+                    <span class="hist-amount ${h.amount > 0 ? 'plus' : 'minus'}">
+                        ${h.amount > 0 ? '+' : ''}${parseFloat(h.amount).toFixed(2)}
+                    </span>
+                    <span class="hist-date">${new Date(h.created_at).toLocaleString()}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error("History load error:", e);
+        listEl.innerHTML = '<p class="empty-msg">Error loading history.</p>';
+    }
 }
 
 window.navTo = navTo;
