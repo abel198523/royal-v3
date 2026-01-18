@@ -116,14 +116,15 @@ app.post('/telegram-webhook', async (req, res) => {
             } else {
                 // Pre-register with phone number and chat ID
                 const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
+                const signupBonus = 10.0; // 10 ETB for register
                 await db.query(
-                    'INSERT INTO users (phone_number, password_hash, username, balance, player_id, telegram_chat_id, referred_by) VALUES ($1, $2, $3, 0, $4, $5, $6)',
-                    [phoneNumber, 'PENDING_REGISTRATION', phoneNumber, playerId, chatId.toString(), referredBy]
+                    'INSERT INTO users (phone_number, password_hash, username, balance, player_id, telegram_chat_id, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [phoneNumber, 'PENDING_REGISTRATION', phoneNumber, signupBonus, playerId, chatId.toString(), referredBy]
                 );
                 
                 // Reward referrer if exists
                 if (referredBy) {
-                    const bonus = 5.0; // 5 ETB for referral
+                    const bonus = 2.0; // 2 ETB for referral
                     await db.query('UPDATE users SET balance = balance + $1 WHERE telegram_chat_id = $2', [bonus, referredBy]);
                     const referrer = await db.query('SELECT balance FROM users WHERE telegram_chat_id = $1', [referredBy]);
                     if (referrer.rows.length > 0) {
@@ -193,7 +194,7 @@ app.post('/telegram-webhook', async (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: chatId,
-                    text: `🎁 ጓደኞችዎን ይጋብዙ እና ቦነስ ያግኙ!\n\nእያንዳንዱ የመጣ ሰው ስልኩን ሲያጋራ 5 ETB ቦነስ ያገኛሉ።\n\nየእርስዎ መጋበዣ ሊንክ፦\n${referralLink}`,
+                    text: `🎁 ጓደኞችዎን ይጋብዙ እና ቦነስ ያግኙ!\n\nእያንዳንዱ የመጣ ሰው ስልኩን ሲያጋራ 2 ETB ቦነስ ያገኛሉ። እርስዎም ስልኮን ሲያጋሩ የ 10 ETB መመዝገቢያ ቦነስ ያገኛሉ!\n\nየእርስዎ መጋበዣ ሊንክ፦\n${referralLink}`,
                     parse_mode: 'Markdown'
                 })
             });
