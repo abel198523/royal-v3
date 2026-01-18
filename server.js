@@ -215,6 +215,15 @@ app.post('/api/admin/approve-deposit', adminOnly, async (req, res) => {
         await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
         await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', depositId]);
         const userRes = await db.query('SELECT balance FROM users WHERE id = $1', [user_id]);
+        
+        // Notify user via WebSocket if connected
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
+                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: parseFloat(userRes.rows[0].balance) }));
+                client.send(JSON.stringify({ type: 'INIT', room: client.room, balance: parseFloat(userRes.rows[0].balance) })); // Force UI refresh
+            }
+        });
+
         await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Approved Deposit (${deposit.rows[0].method})`]);
         await db.query('COMMIT');
         res.json({ message: "ዲፖዚቱ በትክክል ተፈቅዷል" });
@@ -280,7 +289,16 @@ app.post('/api/admin/update-balance', adminOnly, async (req, res) => {
     try {
         const result = await db.query('UPDATE users SET balance = $1 WHERE phone_number = $2 RETURNING *', [balance, phone]);
         if (result.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
-        res.json({ message: "ተስተካክሏል", user: result.rows[0] });
+        const user = result.rows[0];
+        
+        // Notify user via WebSocket if connected
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN && client.userId === user.id) {
+                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: parseFloat(user.balance) }));
+            }
+        });
+
+        res.json({ message: "ተስተካክሏል", user: user });
     } catch (err) { res.status(500).json({ error: "ስህተት" }); }
 });
 
