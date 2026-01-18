@@ -235,20 +235,24 @@ socket.onmessage = (event) => {
     }
 };
 
-const bingoBtn = document.getElementById('bingo-btn');
-if (bingoBtn) {
-    bingoBtn.onclick = () => {
-        const state = getRoomState(currentRoom);
-        if (!state.myGameCard || !currentRoom) return;
-        socket.send(JSON.stringify({
-            type: 'BINGO_CLAIM',
-            room: currentRoom,
-            cardNumber: state.currentSelectedCard
-        }));
-        bingoBtn.style.transform = 'scale(0.95)';
-        setTimeout(() => bingoBtn.style.transform = 'scale(1)', 100);
-    };
-}
+    const bingoBtn = document.getElementById('bingo-btn');
+    if (bingoBtn) {
+        bingoBtn.onclick = () => {
+            const state = getRoomState(currentRoom);
+            // Relaxing the condition to allow claim if we are in a room
+            if (!currentRoom) {
+                showToast("በቅድሚያ ክፍል ይግቡ");
+                return;
+            }
+            socket.send(JSON.stringify({
+                type: 'BINGO_CLAIM',
+                room: currentRoom,
+                cardNumber: state.currentSelectedCard || state.myGameCard?.id
+            }));
+            bingoBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => bingoBtn.style.transform = 'scale(1)', 100);
+        };
+    }
 
 function startGame() {
     const screens = ['selection-screen', 'stake-screen', 'profile-screen', 'wallet-screen', 'game-screen'];
