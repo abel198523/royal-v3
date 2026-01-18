@@ -5,6 +5,8 @@ import psycopg2
 from dotenv import load_dotenv
 import bcrypt
 import logging
+import time
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,7 +21,6 @@ if not TOKEN:
     logger.error("TELEGRAM_BOT_TOKEN is not set in environment variables!")
     # In a local/replit environment, we'll keep the process alive but idle
     # to avoid workflow restart loops, while logging the error.
-    import time
     while True:
         logger.error("Waiting for TELEGRAM_BOT_TOKEN...")
         time.sleep(60)
@@ -63,7 +64,14 @@ def handle_contact(message):
             markup = types.InlineKeyboardMarkup()
             
             # Use environment variable for the web URL to make it dynamic
-            web_url = os.environ.get('WEB_URL', 'https://fidel-bingo.onrender.com') 
+            web_url = os.environ.get('WEB_URL')
+            if not web_url:
+                # Fallback to local replit domain if available
+                domain = os.environ.get('REPLIT_DEV_DOMAIN')
+                if domain:
+                    web_url = f"https://{domain}"
+                else:
+                    web_url = 'https://fidel-bingo.onrender.com'
             
             web_button = types.InlineKeyboardButton("ዌብሳይት ለመክፈት ይጫኑ (Open Website)", url=web_url)
             markup.add(web_button)
@@ -92,3 +100,4 @@ if __name__ == "__main__":
         bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
     except Exception as e:
         logger.error(f"Bot Polling Error: {e}")
+        time.sleep(5) # Avoid rapid crashing if something is wrong with the network or token
