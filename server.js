@@ -410,9 +410,28 @@ app.post('/api/sms-webhook', async (req, res) => {
         const { id, user_id, amount } = depositReq.rows[0];
         await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', id]);
         await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
-        const userRes = await db.query('SELECT balance FROM users WHERE id = $1', [user_id]);
+        const userRes = await db.query('SELECT balance, name, phone_number FROM users WHERE id = $1', [user_id]);
         await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Auto-Approved SMS Deposit (${transactionCode})`]);
         await db.query('COMMIT');
+
+        // Notify Admins
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (botToken) {
+            const adminResult = await db.query("SELECT telegram_chat_id FROM users WHERE is_admin = TRUE");
+            const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+            adminResult.rows.forEach(admin => {
+                if (admin.telegram_chat_id) {
+                    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: admin.telegram_chat_id,
+                            text: `🔔 አውቶ ዲፖዚት ተፈጽሟል!\n\nተጫዋች: ${userRes.rows[0].name || userRes.rows[0].phone_number}\nመጠን: ${amount} ETB\nትራንዛክሽን: ${transactionCode}\n\nባላንሱ በራስ-ሰር ተጨምሯል።`
+                        })
+                    }).catch(e => {});
+                }
+            });
+        }
         res.json({ message: "Approved" });
     } catch (err) { await db.query('ROLLBACK'); res.status(500).json({ error: "Error" }); }
 });
