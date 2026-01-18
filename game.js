@@ -968,6 +968,13 @@ function updateUserData(data) {
     if (profileId) profileId.innerText = `ID: ${data.player_id || '--'}`;
 }
 
+function startGame() {
+    navTo('game');
+    const state = getRoomState(currentRoom);
+    state.myGameCard = state.currentCardData;
+    renderMyGameCard();
+}
+
 function navTo(screenId) {
     const screens = ['stake-screen', 'profile-screen', 'wallet-screen', 'game-screen', 'selection-screen', 'admin-screen', 'deposit-screen', 'withdraw-screen'];
     screens.forEach(s => {
