@@ -32,11 +32,17 @@ def buy_card(room_id):
         # Count players in this room based on recent transactions
         player_count = db.session.query(db.func.count(db.distinct(Transaction.user_id))).filter(Transaction.room_id == room.id).scalar()
         
+        # Calculate prize (ደራሽ) - Total bet amount minus house cut (e.g., 20% cut)
+        house_cut = 0.2
+        total_bets = player_count * room.card_price
+        prize_amount = total_bets * (1 - house_cut)
+        
         return jsonify({
             "success": True, 
             "new_balance": user.balance, 
             "message": f"Purchased card for {room.name} at {room.card_price}",
             "players": player_count,
+            "prize": round(prize_amount, 2),
             "bet": room.card_price
         })
     

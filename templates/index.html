@@ -27,6 +27,7 @@
                     <div class="card-body text-center">
                         <h5 class="card-title">{{ room.name }}</h5>
                         <p class="card-text text-primary fw-bold">Bet: {{ room.card_price }} ETB</p>
+                        <p class="card-text text-success fw-bold">ደራሽ (Prize): <span id="prizeAmount-{{ room.id }}">0.00</span> ETB</p>
                         <p class="card-text text-muted small">Players: <span id="playerCount-{{ room.id }}">0</span></p>
                         <button onclick="buyCard({{ room.id }})" class="btn btn-success">Buy Card</button>
                     </div>
@@ -48,6 +49,9 @@
                 document.getElementById('walletBalance').innerText = data.new_balance;
                 if (data.players !== undefined) {
                     document.getElementById(`playerCount-${roomId}`).innerText = data.players;
+                }
+                if (data.prize !== undefined) {
+                    document.getElementById(`prizeAmount-${roomId}`).innerText = data.prize.toFixed(2);
                 }
                 messageDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
             } else {
