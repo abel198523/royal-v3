@@ -31,9 +31,11 @@ def buy_card(room_id):
 @app.route("/setup-rooms")
 def setup_rooms():
     if not Room.query.first():
-        room1 = Room(name="Bronze Room", card_price=10.0)
-        room2 = Room(name="Silver Room", card_price=50.0)
-        room3 = Room(name="Gold Room", card_price=100.0)
-        db.session.add_all([room1, room2, room3])
+        room1 = Room(name="5 ETB Room", card_price=5.0)
+        room2 = Room(name="10 ETB Room", card_price=10.0)
+        room3 = Room(name="20 ETB Room", card_price=20.0)
+        room4 = Room(name="50 ETB Room", card_price=50.0)
+        room5 = Room(name="100 ETB Room", card_price=100.0)
+        db.session.add_all([room1, room2, room3, room4, room5])
         db.session.commit()
-    return "Rooms setup completed!"
+    return "Rooms setup completed! Rooms created: 5, 10, 20, 50, 100 ETB."
