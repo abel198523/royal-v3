@@ -5,21 +5,30 @@ from models import User, Room, Transaction
 @app.route("/")
 def index():
     rooms = Room.query.all()
-    # In a real app, we'd get this from the logged-in user session
-    # For now, let's try to find a user with a balance to show it works
-    user = User.query.filter(User.balance > 0).first() or User.query.get(1)
+    # Find the user by telegram_chat_id = '0980682889'
+    user = User.query.filter_by(telegram_chat_id='0980682889').first()
     
     if not user:
-        # Create a default user if not exists for testing
-        user = User(username="testuser", balance=202.0, telegram_chat_id="example_id")
-        db.session.add(user)
-        db.session.commit()
+        # Check if testuser exists and update its chat_id to match the bot's user
+        user = User.query.filter_by(username="testuser").first()
+        if user:
+            user.telegram_chat_id = '0980682889'
+            user.balance = 202.0
+            db.session.commit()
+        else:
+            # Create the specific user if nothing matches
+            user = User(username="testuser", balance=202.0, telegram_chat_id="0980682889")
+            db.session.add(user)
+            db.session.commit()
+            
     return render_template("index.html", rooms=rooms, balance=user.balance)
 
 @app.route("/buy-card/<int:room_id>", methods=["POST"])
 def buy_card(room_id):
-    # In a real app, we'd get this from the logged-in user session
-    user = User.query.filter(User.balance > 0).first() or User.query.get(1)
+    # Find the specific user for the purchase
+    user = User.query.filter_by(telegram_chat_id='0980682889').first()
+    if not user:
+        return jsonify({"success": False, "message": "User not found"}), 404
     
     room = Room.query.get_or_404(room_id)
     
