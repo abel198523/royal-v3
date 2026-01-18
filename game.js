@@ -230,8 +230,10 @@ socket.onmessage = (event) => {
         userBalance = data.balance;
         const balanceEl = document.getElementById('sel-balance');
         const walletBalanceEl = document.getElementById('wallet-balance-value');
+        const indexBalanceEl = document.getElementById('walletBalance');
         if (balanceEl) balanceEl.innerText = userBalance.toFixed(2);
         if (walletBalanceEl) walletBalanceEl.innerText = userBalance.toFixed(2);
+        if (indexBalanceEl) indexBalanceEl.innerText = userBalance.toFixed(2);
     }
 };
 
