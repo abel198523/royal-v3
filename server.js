@@ -103,6 +103,12 @@ app.post('/telegram-webhook', async (req, res) => {
         const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
         try {
+            // Check for referral code in /start command
+            let referredBy = null;
+            if (update.message.text.startsWith('/start ')) {
+                referredBy = update.message.text.split(' ')[1];
+            }
+
             // Update or create user with phone number and chat ID
             const userCheck = await db.query('SELECT * FROM users WHERE telegram_chat_id = $1', [chatId.toString()]);
             if (userCheck.rows.length > 0) {
@@ -111,12 +117,33 @@ app.post('/telegram-webhook', async (req, res) => {
                 // Pre-register with phone number and chat ID
                 const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
                 await db.query(
-                    'INSERT INTO users (phone_number, password_hash, username, balance, player_id, telegram_chat_id) VALUES ($1, $2, $3, 0, $4, $5)',
-                    [phoneNumber, 'PENDING_REGISTRATION', phoneNumber, playerId, chatId.toString()]
+                    'INSERT INTO users (phone_number, password_hash, username, balance, player_id, telegram_chat_id, referred_by) VALUES ($1, $2, $3, 0, $4, $5, $6)',
+                    [phoneNumber, 'PENDING_REGISTRATION', phoneNumber, playerId, chatId.toString(), referredBy]
                 );
+                
+                // Reward referrer if exists
+                if (referredBy) {
+                    const bonus = 5.0; // 5 ETB for referral
+                    await db.query('UPDATE users SET balance = balance + $1 WHERE telegram_chat_id = $2', [bonus, referredBy]);
+                    const referrer = await db.query('SELECT balance FROM users WHERE telegram_chat_id = $1', [referredBy]);
+                    if (referrer.rows.length > 0) {
+                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ((SELECT id FROM users WHERE telegram_chat_id = $1), $2, $3, $4, $5)', 
+                            [referredBy, 'referral_bonus', bonus, referrer.rows[0].balance, `Referral bonus for inviting ${phoneNumber}`]);
+                        
+                        // Notify referrer
+                        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: referredBy,
+                                text: `🎁 የእንኳን ደስ አለዎት! አዲስ ሰው ስለጋበዙ ${bonus} ETB ቦነስ ተሰጥቶዎታል።\n\nአሁናዊ ባላንስ: ${referrer.rows[0].balance} ETB`
+                            })
+                        }).catch(e => {});
+                    }
+                }
             }
 
-            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            await fetch(telegramUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -128,7 +155,7 @@ app.post('/telegram-webhook', async (req, res) => {
                             [{ text: "🎮 ወደ ዌብሳይቱ ሂድ (Go to Website)", url: webUrl }]
                         ],
                         keyboard: [
-                            [{ text: "💰 ባላንስ ቼክ (Balance)" }],
+                            [{ text: "💰 ባላንስ ቼክ (Balance)" }, { text: "👥 ጓደኛ ጋብዝ (Referral)" }],
                             [{ text: "➕ ብር መሙላት (Deposit)" }, { text: "➖ ብር ማውጣት (Withdraw)" }],
                             [{ text: "🎮 ወደ ዌብሳይቱ ሂድ" }]
                         ],
@@ -157,6 +184,17 @@ app.post('/telegram-webhook', async (req, res) => {
                 body: JSON.stringify({
                     chat_id: chatId,
                     text: `💰 የእርስዎ ባላንስ: ${balance} ETB`
+                })
+            });
+        } else if (text === "👥 ጓደኛ ጋብዝ (Referral)") {
+            const referralLink = `https://t.me/${process.env.TELEGRAM_BOT_USERNAME}?start=${chatId}`;
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `🎁 ጓደኞችዎን ይጋብዙ እና ቦነስ ያግኙ!\n\nእያንዳንዱ የመጣ ሰው ስልኩን ሲያጋራ 5 ETB ቦነስ ያገኛሉ።\n\nየእርስዎ መጋበዣ ሊንክ፦\n${referralLink}`,
+                    parse_mode: 'Markdown'
                 })
             });
         } else if (text === "➕ ብር መሙላት (Deposit)") {
