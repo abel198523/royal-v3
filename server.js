@@ -98,6 +98,85 @@ app.post('/telegram-webhook', async (req, res) => {
         // Handle contact if needed
     }
 
+    if (update.callback_query) {
+        const callbackData = update.callback_query.data;
+        const chatId = update.callback_query.message.chat.id;
+        const messageId = update.callback_query.message.message_id;
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+        // Check if sender is admin
+        const adminCheck = await db.query("SELECT * FROM users WHERE telegram_chat_id = $1 AND is_admin = TRUE", [chatId.toString()]);
+        if (adminCheck.rows.length === 0) {
+            return res.sendStatus(200);
+        }
+
+        if (callbackData.startsWith('approve_dep_') || callbackData.startsWith('reject_dep_')) {
+            const action = callbackData.startsWith('approve_dep_') ? 'approve' : 'reject';
+            const depositId = callbackData.replace('approve_dep_', '').replace('reject_dep_', '');
+
+            try {
+                if (action === 'approve') {
+                    await db.query('BEGIN');
+                    const deposit = await db.query('SELECT * FROM deposit_requests WHERE id = $1 AND status = $2', [depositId, 'pending']);
+                    if (deposit.rows.length > 0) {
+                        const { user_id, amount, method } = deposit.rows[0];
+                        await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
+                        await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', depositId]);
+                        const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
+                        
+                        // WebSocket Notify
+                        wss.clients.forEach(client => {
+                            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
+                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: parseFloat(userRes.rows[0].balance) }));
+                            }
+                        });
+
+                        // Telegram Notify User
+                        if (userRes.rows[0].telegram_chat_id) {
+                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chat_id: userRes.rows[0].telegram_chat_id,
+                                    text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${amount} ETB\nአሁናዊ ባላንስ: ${userRes.rows[0].balance} ETB`
+                                })
+                            }).catch(e => {});
+                        }
+
+                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Approved via Telegram (${method})`]);
+                        await db.query('COMMIT');
+
+                        // Edit admin message
+                        fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: chatId,
+                                message_id: messageId,
+                                text: update.callback_query.message.text + `\n\n✅ ተፈቅዷል (Approved)`
+                            })
+                        }).catch(e => {});
+                    }
+                } else {
+                    await db.query("UPDATE deposit_requests SET status = 'rejected' WHERE id = $1", [depositId]);
+                    fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            message_id: messageId,
+                            text: update.callback_query.message.text + `\n\n❌ ውድቅ ተደርጓል (Rejected)`
+                        })
+                    }).catch(e => {});
+                }
+            } catch (err) {
+                if (action === 'approve') await db.query('ROLLBACK');
+                console.error("Bot action error:", err);
+            }
+        }
+    }
+
     res.sendStatus(200);
 });
 
@@ -298,7 +377,7 @@ app.post('/api/deposit-request', async (req, res) => {
         if (!amount || !method || !code) return res.status(400).json({ error: "ሁሉም መረጃዎች መሞላት አለባቸው" });
         await db.query('INSERT INTO deposit_requests (user_id, amount, method, transaction_code, status) VALUES ($1, $2, $3, $4, $5)', [decoded.id, amount, method, code, 'pending']);
         
-        // Notify Admin via Telegram Bot
+        // Notify Admin via Telegram Bot with Approval Buttons
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         if (botToken) {
             db.query('SELECT name, phone_number FROM users WHERE id = $1', [decoded.id]).then(userResult => {
@@ -307,17 +386,30 @@ app.post('/api/deposit-request', async (req, res) => {
                 db.query(adminQuery).then(adminResult => {
                     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
                     const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-                    adminResult.rows.forEach(admin => {
-                        if (admin.telegram_chat_id) {
-                            fetch(telegramUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chat_id: admin.telegram_chat_id,
-                                    text: `🆕 አዲስ የዲፖዚት ጥያቄ ቀርቧል!\n\nተጫዋች: ${user.name} (${user.phone_number})\nመጠን: ${amount} ETB\nመንገድ: ${method}\nኮድ: ${code}\n\nእባክዎ አድሚን ፓናል ላይ ገብተው ያጽድቁ።`
-                                })
-                            }).catch(e => console.error("Admin notify error:", e));
-                        }
+                    
+                    // We need to get the last inserted deposit ID
+                    db.query('SELECT id FROM deposit_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [decoded.id]).then(depResult => {
+                        const depId = depResult.rows[0].id;
+                        adminResult.rows.forEach(admin => {
+                            if (admin.telegram_chat_id) {
+                                fetch(telegramUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        chat_id: admin.telegram_chat_id,
+                                        text: `🆕 አዲስ የዲፖዚት ጥያቄ ቀርቧል!\n\nተጫዋች: ${user.name} (${user.phone_number})\nመጠን: ${amount} ETB\nመንገድ: ${method}\nኮድ: ${code}`,
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                [
+                                                    { text: "✅ አጽድቅ (Approve)", callback_data: `approve_dep_${depId}` },
+                                                    { text: "❌ ውድቅ አድርግ (Reject)", callback_data: `reject_dep_${depId}` }
+                                                ]
+                                            ]
+                                        }
+                                    })
+                                }).catch(e => console.error("Admin notify error:", e));
+                            }
+                        });
                     });
                 });
             });
