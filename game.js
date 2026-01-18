@@ -710,10 +710,35 @@ function navTo(screenId) {
     const target = document.getElementById(`${screenId}-screen`);
     if (target) target.classList.add('active');
     
+    if (screenId === 'profile') loadProfileData();
+    if (screenId === 'wallet') loadBalanceHistory();
+
     const sideMenu = document.getElementById('side-menu');
     const overlay = document.getElementById('menu-overlay');
     if (sideMenu) sideMenu.classList.remove('active');
     if (overlay) overlay.classList.remove('active');
+}
+
+async function loadProfileData() {
+    const token = localStorage.getItem('bingo_token');
+    try {
+        const response = await fetch('/api/user/profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok) {
+            document.getElementById('profile-username-top').innerText = data.username;
+            document.getElementById('profile-full-name').innerText = data.name || data.username;
+            document.getElementById('profile-player-id').innerText = `ID: ${data.player_id || '--'}`;
+            document.getElementById('profile-phone-number').innerText = data.phone || '--';
+            
+            const stats = document.querySelectorAll('.profile-stat-item .stat-value');
+            if (stats.length >= 2) {
+                stats[0].innerText = data.total_games;
+                stats[1].innerText = data.total_wins;
+            }
+        }
+    } catch (err) { console.error("Profile load error:", err); }
 }
 
 window.navTo = navTo;

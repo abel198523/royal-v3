@@ -837,6 +837,60 @@ app.post('/api/withdraw-request', async (req, res) => {
     }
 });
 
+app.get('/api/user/profile', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Login required" });
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const userRes = await db.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
+        const user = userRes.rows[0];
+        
+        const gamesRes = await db.query('SELECT COUNT(*) as total_games FROM balance_history WHERE user_id = $1 AND type = \'stake\'', [user.id]);
+        const winsRes = await db.query('SELECT COUNT(*) as total_wins FROM balance_history WHERE user_id = $1 AND type = \'win\'', [user.id]);
+        
+        res.json({
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            phone: user.phone_number,
+            player_id: user.player_id,
+            balance: parseFloat(user.balance),
+            total_games: parseInt(gamesRes.rows[0].total_games || 0),
+            total_wins: parseInt(winsRes.rows[0].total_wins || 0)
+        });
+    } catch (err) {
+        res.status(500).json({ error: "ስህተት" });
+    }
+});
+
+app.get('/api/user/profile', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Login required" });
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const userRes = await db.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
+        const user = userRes.rows[0];
+        
+        const gamesRes = await db.query('SELECT COUNT(*) as total_games FROM balance_history WHERE user_id = $1 AND type = \'stake\'', [user.id]);
+        const winsRes = await db.query('SELECT COUNT(*) as total_wins FROM balance_history WHERE user_id = $1 AND type = \'win\'', [user.id]);
+        
+        res.json({
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            phone: user.phone_number,
+            player_id: user.player_id,
+            balance: parseFloat(user.balance),
+            total_games: parseInt(gamesRes.rows[0].total_games || 0),
+            total_wins: parseInt(winsRes.rows[0].total_wins || 0)
+        });
+    } catch (err) {
+        res.status(500).json({ error: "ስህተት" });
+    }
+});
+
 app.get('/api/user/balance', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: "Login required" });
