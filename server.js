@@ -51,6 +51,53 @@ app.post('/api/admin/promote-user', adminOnly, async (req, res) => {
     }
 });
 
+// Telegram Webhook Endpoint
+app.post('/telegram-webhook', async (req, res) => {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) return res.sendStatus(500);
+    
+    const update = req.body;
+    if (update.message && update.message.text === '/start') {
+        const chatId = update.message.chat.id;
+        const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+        
+        await fetch(telegramUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: `" + chatId + "`",
+                parse_mode: 'Markdown'
+            })
+        });
+    }
+    
+    if (update.message && update.message.contact) {
+        // Handle contact if needed
+    }
+
+    res.sendStatus(200);
+});
+
+// Set Webhook on startup
+async function setTelegramWebhook() {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://fidel-bingo.onrender.com');
+    
+    if (botToken && webUrl) {
+        const telegramUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${webUrl}/telegram-webhook`;
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+        try {
+            const res = await fetch(telegramUrl);
+            const data = await res.json();
+            console.log("Telegram Webhook status:", data);
+        } catch (err) {
+            console.error("Failed to set Telegram Webhook:", err);
+        }
+    }
+}
+
 let rooms = {};
 
 STAKES.forEach(amount => {
@@ -416,4 +463,5 @@ async function initDatabase() {
 server.listen(PORT, '0.0.0.0', async () => {
     STAKES.forEach(a => startRoomCountdown(a));
     await initDatabase();
+    await setTelegramWebhook();
 });
