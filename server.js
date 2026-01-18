@@ -657,17 +657,15 @@ app.post('/api/withdraw-request', async (req, res) => {
         const depositHistory = await db.query('SELECT SUM(amount) as total_dep FROM deposit_requests WHERE user_id = $1 AND status = \'approved\'', [decoded.id]);
         const totalDeposited = parseFloat(depositHistory.rows[0].total_dep || 0);
 
-        if (totalDeposited < 100) {
-            // Check win count
-            const winCount = await db.query('SELECT COUNT(*) as wins FROM balance_history WHERE user_id = $1 AND type = \'win\'', [decoded.id]);
-            const totalWins = parseInt(winCount.rows[0].wins || 0);
-            
-            if (totalWins < 2) {
-                await db.query('ROLLBACK');
-                return res.status(400).json({ 
-                    error: "መስፈርቱን አላሟሉም! በቦነስ ተጫውተው ለማውጣት ቢያንስ 100 ብር ዲፖዚት ማድረግ ወይም 2 ጊዜ ማሸነፍ ይጠበቅብዎታል" 
-                });
-            }
+        // Check win count
+        const winCount = await db.query('SELECT COUNT(*) as wins FROM balance_history WHERE user_id = $1 AND type = \'win\'', [decoded.id]);
+        const totalWins = parseInt(winCount.rows[0].wins || 0);
+
+        if (totalDeposited < 100 || totalWins < 2) {
+            await db.query('ROLLBACK');
+            return res.status(400).json({ 
+                error: "መስፈርቱን አላሟሉም! ገንዘብ ለማውጣት ቢያንስ 100 ብር ዲፖዚት ማድረግ እና 2 ጊዜ ማሸነፍ (ሁለቱንም በአንድላይ) ይጠበቅብዎታል" 
+            });
         }
         
         await db.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [amount, decoded.id]);
