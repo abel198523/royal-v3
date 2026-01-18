@@ -260,11 +260,12 @@ app.post('/telegram-webhook', async (req, res) => {
                         await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
                         await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', depositId]);
                         const userRes = await db.query('SELECT balance, telegram_chat_id FROM users WHERE id = $1', [user_id]);
+                        const currentBalance = parseFloat(userRes.rows[0].balance || 0);
                         
                         // WebSocket Notify
                         wss.clients.forEach(client => {
                             if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
-                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: parseFloat(userRes.rows[0].balance) }));
+                                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: currentBalance }));
                             }
                         });
 
@@ -275,12 +276,12 @@ app.post('/telegram-webhook', async (req, res) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chat_id: userRes.rows[0].telegram_chat_id,
-                                    text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${amount} ETB\nአሁናዊ ባላንስ: ${userRes.rows[0].balance} ETB`
+                                    text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${amount} ETB\nአሁናዊ ባላንስ: ${currentBalance} ETB`
                                 })
                             }).catch(e => {});
                         }
 
-                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Approved via Telegram (${method})`]);
+                        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, currentBalance, `Approved via Telegram (${method})`]);
                         await db.query('COMMIT');
 
                         // Edit admin message
@@ -481,7 +482,7 @@ app.post('/api/signup-verify', async (req, res) => {
         }
         
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
-        res.json({ token, username: user.username, balance: user.balance, name: user.name, player_id: user.player_id, is_admin: user.is_admin });
+        res.json({ token, username: user.username, balance: parseFloat(user.balance || 0), name: user.name, player_id: user.player_id, is_admin: user.is_admin });
     } catch (err) { res.status(500).json({ error: "ምዝገባው አልተሳካም" }); }
 });
 
@@ -494,7 +495,7 @@ app.post('/api/login', async (req, res) => {
         if (!isMatch) return res.status(401).json({ error: "የተሳሳተ የይለፍ ቃል" });
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
-        res.json({ token, username: user.username, balance: user.balance, name: user.name, player_id: user.player_id, is_admin: user.is_admin });
+        res.json({ token, username: user.username, balance: parseFloat(user.balance || 0), name: user.name, player_id: user.player_id, is_admin: user.is_admin });
     } catch (err) { res.status(500).send(err); }
 });
 
@@ -592,8 +593,16 @@ app.post('/api/sms-webhook', async (req, res) => {
         await db.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', id]);
         await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [amount, user_id]);
         const userRes = await db.query('SELECT balance, name, phone_number FROM users WHERE id = $1', [user_id]);
-        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Auto-Approved SMS Deposit (${transactionCode})`]);
+        const currentBalance = parseFloat(userRes.rows[0].balance || 0);
+        await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, currentBalance, `Auto-Approved SMS Deposit (${transactionCode})`]);
         await db.query('COMMIT');
+
+        // Update connected client
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN && client.userId === user_id) {
+                client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: currentBalance }));
+            }
+        });
 
         // Notify Admins
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
