@@ -5,11 +5,13 @@ from models import User, Room, Transaction
 @app.route("/")
 def index():
     rooms = Room.query.all()
-    # For demo purposes, we'll use a hardcoded user_id=1
-    user = User.query.get(1)
+    # In a real app, we'd get this from the logged-in user session
+    # For now, let's try to find a user with a balance to show it works
+    user = User.query.filter(User.balance > 0).first() or User.query.get(1)
+    
     if not user:
         # Create a default user if not exists for testing
-        user = User(username="testuser", balance=1000.0)
+        user = User(username="testuser", balance=202.0, telegram_chat_id="example_id")
         db.session.add(user)
         db.session.commit()
     return render_template("index.html", rooms=rooms, balance=user.balance)
