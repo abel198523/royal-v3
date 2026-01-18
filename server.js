@@ -437,21 +437,44 @@ wss.on('connection', (ws) => {
     ws.on('message', async (msg) => {
         const data = JSON.parse(msg);
         if (data.type === 'BINGO_CLAIM') {
-            const room = rooms[data.room]; if (!room || !room.gameInterval) return;
-            let pWs = null; room.players.forEach(p => { if (p.cardNumber == data.cardNumber || (p.roomData && p.roomData[data.room] && p.roomData[data.room].cardNumber == data.cardNumber)) pWs = p; });
-            if (!pWs) return;
-            const win = checkWin(data.cardData, room.drawnBalls);
+            const room = rooms[data.room]; if (!room || !room.gameInterval) {
+                ws.send(JSON.stringify({ type: 'ERROR', message: "ጨዋታው ገና አልተጀመረም ወይም ተጠናቋል" }));
+                return;
+            }
+            
+            // Support both direct cardNumber and cardData in request
+            const cardNum = data.cardNumber;
+            const cardData = data.cardData || (ws.roomData && ws.roomData[data.room] ? ws.roomData[data.room].cardData : ws.cardData);
+            
+            if (!cardData) {
+                ws.send(JSON.stringify({ type: 'ERROR', message: "የእርስዎ ካርድ መረጃ አልተገኘም" }));
+                return;
+            }
+
+            const win = checkWin(cardData, room.drawnBalls);
             if (win) {
                 clearInterval(room.gameInterval); room.gameInterval = null;
                 const pc = Array.from(room.players).filter(p => p.cardNumber || (p.roomData && p.roomData[data.room])).length;
                 const wa = room.stake === 5 ? (room.stake * pc) * 0.9 : (room.stake * pc) * 0.8;
                 try {
-                    await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [wa, pWs.userId]);
-                    const ur = await db.query('SELECT balance FROM users WHERE id = $1', [pWs.userId]);
-                    await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [pWs.userId, 'win', wa, ur.rows[0].balance, `Win Room ${data.room}`]);
-                    broadcastToRoom(data.room, { type: 'GAME_OVER', winner: pWs.username, amount: wa, pattern: win.type, room: data.room });
+                    await db.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [wa, ws.userId]);
+                    const ur = await db.query('SELECT balance FROM users WHERE id = $1', [ws.userId]);
+                    await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [ws.userId, 'win', wa, ur.rows[0].balance, `Win Room ${data.room}`]);
+                    broadcastToRoom(data.room, { 
+                        type: 'GAME_OVER', 
+                        winner: ws.username, 
+                        amount: wa, 
+                        pattern: win.type, 
+                        room: data.room,
+                        winCard: cardData,
+                        winPattern: room.drawnBalls
+                    });
                     updateGlobalStats(); setTimeout(() => startRoomCountdown(data.room), 5000);
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Bingo win processing error:", e);
+                }
+            } else {
+                ws.send(JSON.stringify({ type: 'ERROR', message: "ቢንጎ አልሞላም! እባክዎ በትክክል ያረጋግጡ" }));
             }
         }
         if (data.type === 'JOIN_ROOM') {

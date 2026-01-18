@@ -239,16 +239,21 @@ socket.onmessage = (event) => {
     if (bingoBtn) {
         bingoBtn.onclick = () => {
             const state = getRoomState(currentRoom);
-            // Relaxing the condition to allow claim if we are in a room
             if (!currentRoom) {
                 showToast("በቅድሚያ ክፍል ይግቡ");
                 return;
             }
+            
+            // Log for debugging
+            console.log("Bingo claim clicked. Room:", currentRoom, "Card:", state.currentSelectedCard, "MyGameCard:", state.myGameCard);
+
             socket.send(JSON.stringify({
                 type: 'BINGO_CLAIM',
                 room: currentRoom,
-                cardNumber: state.currentSelectedCard || state.myGameCard?.id
+                cardNumber: state.currentSelectedCard || (state.myGameCard ? state.myGameCard.id : null),
+                cardData: state.myGameCard || state.currentCardData
             }));
+            
             bingoBtn.style.transform = 'scale(0.95)';
             setTimeout(() => bingoBtn.style.transform = 'scale(1)', 100);
         };
