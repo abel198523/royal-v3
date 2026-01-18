@@ -139,7 +139,7 @@ const adminOnly = (req, res, next) => {
         const decoded = jwt.verify(token, SECRET_KEY);
         // ጥብቅ ቁጥጥር፡ በስልክ ቁጥሩ ብቻ አድሚን መሆኑን ማረጋገጥ
         // 0980682889 እና 8228419622 በቋሚነት አድሚን ናቸው
-        if (decoded.telegram_chat_id === '0980682889' || decoded.telegram_chat_id === '8228419622' || decoded.is_admin === true) {
+        if (decoded.telegram_chat_id == '0980682889' || decoded.telegram_chat_id == '8228419622' || decoded.is_admin === true) {
             req.user = decoded;
             next();
         } else {
