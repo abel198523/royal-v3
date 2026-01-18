@@ -699,7 +699,7 @@ function updateUserData(data) {
 }
 
 function navTo(screenId) {
-    const screens = ['stake-screen', 'profile-screen', 'wallet-screen', 'game-screen', 'selection-screen', 'admin-screen'];
+    const screens = ['stake-screen', 'profile-screen', 'wallet-screen', 'game-screen', 'selection-screen', 'admin-screen', 'deposit-screen', 'withdraw-screen'];
     screens.forEach(s => {
         const el = document.getElementById(s);
         if (el) el.classList.remove('active');
