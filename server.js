@@ -297,6 +297,32 @@ app.post('/api/deposit-request', async (req, res) => {
         const { amount, method, code } = req.body;
         if (!amount || !method || !code) return res.status(400).json({ error: "ሁሉም መረጃዎች መሞላት አለባቸው" });
         await db.query('INSERT INTO deposit_requests (user_id, amount, method, transaction_code, status) VALUES ($1, $2, $3, $4, $5)', [decoded.id, amount, method, code, 'pending']);
+        
+        // Notify Admin via Telegram Bot
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (botToken) {
+            db.query('SELECT name, phone_number FROM users WHERE id = $1', [decoded.id]).then(userResult => {
+                const user = userResult.rows[0];
+                const adminQuery = "SELECT telegram_chat_id FROM users WHERE is_admin = TRUE";
+                db.query(adminQuery).then(adminResult => {
+                    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+                    adminResult.rows.forEach(admin => {
+                        if (admin.telegram_chat_id) {
+                            fetch(telegramUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chat_id: admin.telegram_chat_id,
+                                    text: `🆕 አዲስ የዲፖዚት ጥያቄ ቀርቧል!\n\nተጫዋች: ${user.name} (${user.phone_number})\nመጠን: ${amount} ETB\nመንገድ: ${method}\nኮድ: ${code}\n\nእባክዎ አድሚን ፓናል ላይ ገብተው ያጽድቁ።`
+                                })
+                            }).catch(e => console.error("Admin notify error:", e));
+                        }
+                    });
+                });
+            });
+        }
+        
         res.json({ message: "የዲፖዚት ጥያቄዎ በትክክል ተልኳል፤ አድሚኑ እስኪያጸድቅልዎ ይጠብቁ" });
     } catch (err) { 
         console.error("Deposit Error:", err);
