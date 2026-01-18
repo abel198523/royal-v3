@@ -857,6 +857,12 @@ if (adminSearchBtn) {
                 document.getElementById('admin-user-name').innerText = user.name;
                 document.getElementById('admin-user-phone').innerText = user.phone_number;
                 document.getElementById('admin-user-balance').innerText = user.balance;
+                const roleEl = document.getElementById('admin-user-role');
+                if (roleEl) roleEl.innerText = user.is_admin ? "ROLE: ADMIN" : "ROLE: USER";
+                
+                const promoteBtn = document.getElementById('admin-promote-btn');
+                if (promoteBtn) promoteBtn.style.display = user.is_admin ? 'none' : 'block';
+                
                 window.currentAdminUser = user;
             } else {
                 alert(user.error);
@@ -900,6 +906,33 @@ async function updateBalance(isAdd) {
             alert(data.error);
         }
     } catch (e) { console.error(e); }
+}
+
+const promoteUserBtn = document.getElementById('admin-promote-btn');
+if (promoteUserBtn) {
+    promoteUserBtn.onclick = async () => {
+        const user = window.currentAdminUser;
+        if (!user) return;
+        if (!confirm(`${user.name}ን አድሚን ማድረግ ይፈልጋሉ?`)) return;
+        
+        const token = localStorage.getItem('bingo_token');
+        try {
+            const res = await fetch('/api/admin/promote-user', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ targetPhone: user.phone_number })
+            });
+            const data = await res.json();
+            alert(data.message || data.error);
+            if (res.ok) {
+                document.getElementById('admin-promote-btn').style.display = 'none';
+                document.getElementById('admin-user-role').innerText = "ROLE: ADMIN";
+            }
+        } catch (e) { console.error(e); }
+    };
 }
 
 const sendBroadcastBtn = document.getElementById('send-broadcast');
