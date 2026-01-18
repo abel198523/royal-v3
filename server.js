@@ -224,6 +224,26 @@ app.post('/api/admin/approve-deposit', adminOnly, async (req, res) => {
             }
         });
 
+        // Notify user via Telegram Bot
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (botToken) {
+            db.query('SELECT telegram_chat_id FROM users WHERE id = $1', [user_id]).then(userResult => {
+                const chatId = userResult.rows[0]?.telegram_chat_id;
+                if (chatId) {
+                    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+                    fetch(telegramUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `✅ የዲፖዚት ጥያቄዎ ጸድቋል!\n\nመጠን: ${amount} ETB\nአሁናዊ ባላንስ: ${userRes.rows[0].balance} ETB\n\nመልካም ጨዋታ!`
+                        })
+                    }).catch(e => console.error("Telegram notify error:", e));
+                }
+            });
+        }
+
         await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ($1, $2, $3, $4, $5)', [user_id, 'deposit', amount, userRes.rows[0].balance, `Approved Deposit (${deposit.rows[0].method})`]);
         await db.query('COMMIT');
         res.json({ message: "ዲፖዚቱ በትክክል ተፈቅዷል" });
@@ -297,6 +317,21 @@ app.post('/api/admin/update-balance', adminOnly, async (req, res) => {
                 client.send(JSON.stringify({ type: 'BALANCE_UPDATE', balance: parseFloat(user.balance) }));
             }
         });
+
+        // Notify user via Telegram Bot
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (botToken && user.telegram_chat_id) {
+            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+            fetch(telegramUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: user.telegram_chat_id,
+                    text: `💰 ባላንስዎ ተስተካክሏል!\n\nአሁናዊ ባላንስ: ${user.balance} ETB`
+                })
+            }).catch(e => console.error("Telegram notify error:", e));
+        }
 
         res.json({ message: "ተስተካክሏል", user: user });
     } catch (err) { res.status(500).json({ error: "ስህተት" }); }
