@@ -642,13 +642,32 @@ app.post('/api/withdraw-request', async (req, res) => {
         const decoded = jwt.verify(token, SECRET_KEY);
         const { amount, method, account } = req.body;
         if (!amount || !method || !account) return res.status(400).json({ error: "ሁሉም መረጃዎች መሞላት አለባቸው" });
-        if (amount < 50) return res.status(400).json({ error: "ዝቅተኛው የዊዝድሮው መጠን 50 ብር ነው" });
+        
+        const MIN_WITHDRAW = 100;
+        if (amount < MIN_WITHDRAW) return res.status(400).json({ error: `ዝቅተኛው የዊዝድሮው መጠን ${MIN_WITHDRAW} ብር ነው` });
         
         await db.query('BEGIN');
         const userResult = await db.query('SELECT balance, name FROM users WHERE id = $1', [decoded.id]);
         if (userResult.rows[0].balance < amount) {
             await db.query('ROLLBACK');
             return res.status(400).json({ error: "በቂ ባላንስ የልዎትም" });
+        }
+
+        // Check deposit history for 100 ETB
+        const depositHistory = await db.query('SELECT SUM(amount) as total_dep FROM deposit_requests WHERE user_id = $1 AND status = \'approved\'', [decoded.id]);
+        const totalDeposited = parseFloat(depositHistory.rows[0].total_dep || 0);
+
+        if (totalDeposited < 100) {
+            // Check win count
+            const winCount = await db.query('SELECT COUNT(*) as wins FROM balance_history WHERE user_id = $1 AND type = \'win\'', [decoded.id]);
+            const totalWins = parseInt(winCount.rows[0].wins || 0);
+            
+            if (totalWins < 2) {
+                await db.query('ROLLBACK');
+                return res.status(400).json({ 
+                    error: "መስፈርቱን አላሟሉም! በቦነስ ተጫውተው ለማውጣት ቢያንስ 100 ብር ዲፖዚት ማድረግ ወይም 2 ጊዜ ማሸነፍ ይጠበቅብዎታል" 
+                });
+            }
         }
         
         await db.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [amount, decoded.id]);
