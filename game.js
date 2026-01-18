@@ -218,17 +218,31 @@ socket.onmessage = (event) => {
         state.currentSelectedCard = null;
         state.currentCardData = null;
         state.lastHistory = [];
+        
+        // Ensure game board is cleared for the next session
+        const masterGrid = document.getElementById('master-grid');
+        if (masterGrid) masterGrid.innerHTML = '';
+        
         if (data.room == currentRoom || !data.room) {
             showWinnerModal(data.winner, data.winCard, data.winPattern);
             setTimeout(() => {
                 const modal = document.getElementById('winner-modal');
                 if (modal) modal.classList.remove('active');
-                const screens = ['game-screen', 'selection-screen', 'profile-screen', 'wallet-screen'];
+                
+                // Hide all active screens
+                const screens = ['game-screen', 'selection-screen', 'profile-screen', 'wallet-screen', 'deposit-screen', 'withdraw-screen'];
                 screens.forEach(s => {
                     const el = document.getElementById(s);
                     if (el) el.classList.remove('active');
                 });
-                document.getElementById('stake-screen').classList.add('active');
+                
+                // Redirect to stake selection screen (initial state)
+                const stakeScreen = document.getElementById('stake-screen');
+                if (stakeScreen) stakeScreen.classList.add('active');
+                
+                // Reset current room to force re-selection
+                currentRoom = null;
+                
             }, 8000);
         }
     } else if (data.type === 'ERROR') {
