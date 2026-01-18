@@ -404,7 +404,7 @@ if (loginBtn) {
         const errorEl = document.getElementById('auth-error-login');
 
         if (!telegram_chat_id || !password) {
-            errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
+            if (errorEl) errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
             return;
         }
 
@@ -420,24 +420,25 @@ if (loginBtn) {
                 localStorage.setItem('bingo_user', JSON.stringify(data));
                 window.location.reload();
             } else {
-                errorEl.innerText = data.error || "የመግቢያ ስህተት";
+                if (errorEl) errorEl.innerText = data.error || "የመግቢያ ስህተት";
             }
         } catch (err) {
-            errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+            if (errorEl) errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
         }
     };
 }
 
-function showSignup() {
+window.showSignup = () => {
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('signup-form').style.display = 'block';
-}
+    document.getElementById('otp-form').style.display = 'none';
+};
 
-function showLogin() {
+window.showLogin = () => {
     document.getElementById('signup-form').style.display = 'none';
     document.getElementById('otp-form').style.display = 'none';
     document.getElementById('login-form').style.display = 'block';
-}
+};
 
 const doSignupBtn = document.getElementById('do-signup');
 if (doSignupBtn) {
@@ -448,7 +449,7 @@ if (doSignupBtn) {
         const errorEl = document.getElementById('auth-error-signup');
 
         if (!name || !telegram_chat_id || !password) {
-            errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
+            if (errorEl) errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
             return;
         }
 
@@ -462,14 +463,14 @@ if (doSignupBtn) {
             if (res.ok) {
                 document.getElementById('signup-form').style.display = 'none';
                 document.getElementById('otp-form').style.display = 'block';
-                document.getElementById('otp-hint').innerText = `ኮድ ወደ Chat ID ${telegram_chat_id} ተልኳል`;
+                const hint = document.getElementById('otp-hint');
+                if (hint) hint.innerText = `OTP ወደ ቴሌግራም (${telegram_chat_id}) ተልኳል`;
                 window.signupTempData = { name, telegram_chat_id, password };
-                errorEl.innerText = "";
             } else {
-                errorEl.innerText = data.error || "የምዝገባ ጥያቄ ስህተት";
+                if (errorEl) errorEl.innerText = data.error || "የምዝገባ ጥያቄ ስህተት";
             }
         } catch (err) {
-            errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+            if (errorEl) errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
         }
     };
 }
@@ -482,11 +483,11 @@ if (verifyOtpBtn) {
         const signupData = window.signupTempData;
 
         if (!otp) {
-            errorEl.innerText = "እባክዎ የኦቲፒ ኮዱን ያስገቡ";
+            if (errorEl) errorEl.innerText = "እባክዎ የኦቲፒ ኮዱን ያስገቡ";
             return;
         }
         if (!signupData) {
-            errorEl.innerText = "የምዝገባ መረጃ አልተገኘም፣ እባክዎ እንደገና ይሞክሩ";
+            if (errorEl) errorEl.innerText = "የምዝገባ መረጃ አልተገኘም፣ እባክዎ እንደገና ይሞክሩ";
             return;
         }
 
@@ -496,16 +497,32 @@ if (verifyOtpBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...signupData, otp })
             });
+
+// Initialize App
+function initApp() {
+    const token = localStorage.getItem("bingo_token");
+    if (token) {
+        // Start global stats sync
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "AUTH", token }));
+        } else {
+            socket.onopen = () => {
+                socket.send(JSON.stringify({ type: "AUTH", token }));
+            };
+        }
+    }
+}
+
             const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('bingo_token', data.token);
                 localStorage.setItem('bingo_user', JSON.stringify(data));
                 window.location.reload();
             } else {
-                errorEl.innerText = data.error || "የማረጋገጫ ስህተት";
+                if (errorEl) errorEl.innerText = data.error || "የማረጋገጫ ስህተት";
             }
         } catch (err) {
-            errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+            if (errorEl) errorEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
         }
     };
 }
@@ -518,6 +535,7 @@ window.onload = () => {
     if (token && userJson) {
         const user = JSON.parse(userJson);
         document.getElementById('auth-screen').classList.remove('active');
+        document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
         
         // Update UI with user info
@@ -1007,117 +1025,6 @@ async function loadBalanceHistory() {
     }
 }
 
-window.navTo = navTo;
-
-const doLoginBtn = document.getElementById('do-login');
-if (doLoginBtn) {
-    doLoginBtn.onclick = async () => {
-        const telegram_chat_id = document.getElementById('login-telegram').value;
-        const password = document.getElementById('login-pass').value;
-        const errorEl = document.getElementById('auth-error');
-        if (errorEl) errorEl.innerText = '';
-
-        try {
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegram_chat_id, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('bingo_token', data.token);
-                updateUserData(data);
-                document.getElementById('auth-screen').classList.remove('active');
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                navTo('stake');
-                initApp();
-            } else {
-                if (errorEl) errorEl.innerText = data.error || 'Login failed';
-            }
-        } catch (e) { 
-            console.error(e);
-            if (errorEl) errorEl.innerText = 'Connection error';
-        }
-    };
-}
-
-window.showSignup = () => {
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('signup-form').style.display = 'block';
-    document.getElementById('otp-form').style.display = 'none';
-};
-
-window.showLogin = () => {
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('signup-form').style.display = 'none';
-    document.getElementById('otp-form').style.display = 'none';
-};
-
-const doSignupBtn = document.getElementById('do-signup');
-if (doSignupBtn) {
-    doSignupBtn.onclick = async () => {
-        const name = document.getElementById('signup-name').value;
-        const telegram_chat_id = document.getElementById('signup-telegram').value;
-        const password = document.getElementById('signup-pass').value;
-        const errorEl = document.getElementById('auth-error');
-
-        if (!name || !telegram_chat_id || !password) {
-            if (errorEl) errorEl.innerText = "ሁሉንም መረጃዎች ያስገቡ";
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/signup-request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegram_chat_id })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                document.getElementById('signup-form').style.display = 'none';
-                document.getElementById('otp-form').style.display = 'block';
-                const hint = document.getElementById('otp-hint');
-                if (hint) hint.innerText = `OTP ወደ ቴሌግራም (${telegram_chat_id}) ተልኳል`;
-                
-                window.signupTempData = { name, telegram_chat_id, password };
-            } else {
-                if (errorEl) errorEl.innerText = data.error;
-            }
-        } catch (e) { console.error(e); }
-    };
-}
-
-const verifyOtpBtn = document.getElementById('verify-otp');
-if (verifyOtpBtn) {
-    verifyOtpBtn.onclick = async () => {
-        const otp = document.getElementById('otp-code').value;
-        const errorEl = document.getElementById('auth-error');
-        const signupData = window.signupTempData;
-
-        if (!otp) return alert("OTP ያስገቡ");
-        if (!signupData) return alert("የምዝገባ መረጃ አልተገኘም፣ እባክዎ እንደገና ይሞክሩ");
-
-        try {
-            const res = await fetch('/api/signup-verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...signupData, otp })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('bingo_token', data.token);
-                updateUserData(data);
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                navTo('stake');
-                initApp();
-            } else {
-                if (errorEl) errorEl.innerText = data.error;
-            }
-        } catch (e) { console.error(e); }
-    };
-}
 
 function promptAdminPassword() {
     const pass = prompt("አድሚን ፓስወርድ ያስገቡ:");

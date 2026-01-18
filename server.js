@@ -488,7 +488,10 @@ app.post('/api/login', async (req, res) => {
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
         res.json({ token, username: user.username, balance: parseFloat(user.balance || 0), name: user.name, player_id: user.player_id, phone_number: user.phone_number, is_admin: user.is_admin });
-    } catch (err) { res.status(500).send(err); }
+    } catch (err) { 
+        console.error("Login error:", err);
+        res.status(500).json({ error: "የመግቢያ ስህተት" }); 
+    }
 });
 
 app.get('/api/admin/user/:phone', adminOnly, async (req, res) => {
