@@ -6,10 +6,14 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
+const initDB = require('./init_db');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// Initialize Database
+initDB();
 
 const SECRET_KEY = process.env.SESSION_SECRET || process.env.JWT_SECRET || "bingo_secret_123";
 const PORT = process.env.PORT || 5000;
