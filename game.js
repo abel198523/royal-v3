@@ -45,7 +45,13 @@ function getRoomState(roomId) {
     return roomStates[roomId];
 }
 
+// Variables to store current global stats
+let globalStats = {};
+let globalPrizes = {};
+
 function updateRoomStats(stats, roomTimers, prizes) {
+    globalStats = stats || {};
+    globalPrizes = prizes || {};
     Object.keys(stats).forEach(amount => {
         const countEl = document.getElementById(`stake-count-${amount}`);
         if (countEl) {
@@ -141,7 +147,19 @@ function createAvailableCards() {
 function showToast(message) {
     const toast = document.getElementById('notification-toast');
     const msgEl = document.getElementById('toast-message');
-    if (!toast || !msgEl) return;
+    if (!toast || !msgEl) {
+        // Fallback for standard alert if toast element is missing
+        if (message.includes("አልሞላም")) {
+             // Create dynamic notification if missing
+             const div = document.createElement('div');
+             div.id = 'notification-toast';
+             div.className = 'active';
+             div.innerHTML = `<span id="toast-message">${message}</span>`;
+             document.body.appendChild(div);
+             setTimeout(() => div.remove(), 3000);
+        }
+        return;
+    }
     msgEl.innerText = message;
     toast.classList.add('active');
     setTimeout(() => toast.classList.remove('active'), 3000);
@@ -447,6 +465,18 @@ function updateGameUI(history) {
             }
         }
     }
+    
+    // Update top bar stats (Derash, Players, Bet)
+    const derashEl = document.getElementById('derash');
+    const playersEl = document.getElementById('players');
+    const betEl = document.getElementById('bet');
+    
+    if (currentRoom) {
+        if (derashEl && globalPrizes[currentRoom]) derashEl.innerText = globalPrizes[currentRoom].toFixed(0);
+        if (playersEl && globalStats[currentRoom]) playersEl.innerText = globalStats[currentRoom];
+        if (betEl) betEl.innerText = currentRoom;
+    }
+
     if (history.length === 0) {
         activeBall.innerHTML = '<span>--</span>';
         recentBalls.innerHTML = '';
