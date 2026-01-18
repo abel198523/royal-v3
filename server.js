@@ -81,21 +81,64 @@ app.post('/telegram-webhook', async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: chatId,
-                text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: `" + chatId + "`",
+                text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nለመቀጠል እባክዎ ስልክ ቁጥርዎን ያጋሩ (Share Contact)።",
                 parse_mode: 'Markdown',
                 reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "🎮 ወደ ዌብሳይቱ ሂድ (Go to Website)", url: webUrl }]
-                    ],
                     keyboard: [
-                        [{ text: "💰 ባላንስ ቼክ (Balance)" }],
-                        [{ text: "➕ ብር መሙላት (Deposit)" }, { text: "➖ ብር ማውጣት (Withdraw)" }],
-                        [{ text: "🎮 ወደ ዌብሳይቱ ሂድ" }]
+                        [{ text: "📱 ስልክ ቁጥር አጋራ (Share Contact)", request_contact: true }]
                     ],
-                    resize_keyboard: true
+                    resize_keyboard: true,
+                    one_time_keyboard: true
                 }
             })
         });
+    }
+
+    if (update.message && update.message.contact) {
+        const contact = update.message.contact;
+        const chatId = update.message.chat.id;
+        const phoneNumber = contact.phone_number.replace('+', '');
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.RENDER_EXTERNAL_URL);
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+        try {
+            // Update or create user with phone number and chat ID
+            const userCheck = await db.query('SELECT * FROM users WHERE telegram_chat_id = $1', [chatId.toString()]);
+            if (userCheck.rows.length > 0) {
+                await db.query('UPDATE users SET phone_number = $1 WHERE telegram_chat_id = $2', [phoneNumber, chatId.toString()]);
+            } else {
+                // Pre-register with phone number and chat ID
+                const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
+                await db.query(
+                    'INSERT INTO users (phone_number, password_hash, username, balance, player_id, telegram_chat_id) VALUES ($1, $2, $3, 0, $4, $5)',
+                    [phoneNumber, 'PENDING_REGISTRATION', phoneNumber, playerId, chatId.toString()]
+                );
+            }
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `✅ ስልክ ቁጥርዎ ተመዝግቧል! አሁን መጫወት ይችላሉ።\n\nየእርስዎ Chat ID: \`${chatId}\``,
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🎮 ወደ ዌብሳይቱ ሂድ (Go to Website)", url: webUrl }]
+                        ],
+                        keyboard: [
+                            [{ text: "💰 ባላንስ ቼክ (Balance)" }],
+                            [{ text: "➕ ብር መሙላት (Deposit)" }, { text: "➖ ብር ማውጣት (Withdraw)" }],
+                            [{ text: "🎮 ወደ ዌብሳይቱ ሂድ" }]
+                        ],
+                        resize_keyboard: true
+                    }
+                })
+            });
+        } catch (err) {
+            console.error("Contact handling error:", err);
+        }
     }
 
     if (update.message && update.message.text) {
