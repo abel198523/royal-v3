@@ -505,12 +505,12 @@ body {
     display: flex;
 }
 
-.stake-screen, .profile-screen, .wallet-screen, .game-screen, .selection-screen, .admin-screen {
+.stake-screen, .profile-screen, .game-screen, .selection-screen, .admin-screen {
     display: none;
     padding-top: 70px; /* Space for header */
 }
 
-.stake-screen.active, .profile-screen.active, .wallet-screen.active, .game-screen.active, .selection-screen.active, .admin-screen.active {
+.stake-screen.active, .profile-screen.active, .game-screen.active, .selection-screen.active, .admin-screen.active {
     display: flex;
     flex-direction: column;
 }
@@ -579,8 +579,7 @@ body {
     min-height: 1.2rem;
 }
 
-/* Profile & Wallet Screens */
-.profile-screen, .wallet-screen {
+.profile-screen {
     position: fixed;
     top: 0;
     left: 0;
@@ -595,11 +594,11 @@ body {
     gap: 15px;
 }
 
-.profile-screen.active, .wallet-screen.active {
+.profile-screen.active {
     display: flex;
 }
 
-.profile-content, .wallet-content {
+.profile-content {
     padding: 10px 0;
     overflow-y: auto;
     flex-grow: 1;
@@ -695,65 +694,6 @@ body {
     border: 1px solid #374151;
 }
 
-.wallet-card {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    padding: 30px;
-    border-radius: 20px;
-    color: white;
-    margin-bottom: 25px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-}
-
-.wallet-label {
-    font-size: 14px;
-    opacity: 0.8;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.wallet-balance-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.wallet-currency {
-    font-size: 20px;
-    font-weight: 600;
-}
-
-.wallet-balance {
-    font-size: 40px;
-    font-weight: 800;
-}
-
-.wallet-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.wallet-btn {
-    padding: 15px;
-    border-radius: 12px;
-    border: none;
-    font-weight: 700;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.wallet-btn.deposit {
-    background: #22c55e;
-    color: white;
-}
-
-.wallet-btn.withdraw {
-    background: #1e2533;
-    color: white;
-    border: 1px solid #374151;
-}
 .stake-screen {
     position: fixed;
     top: 0;

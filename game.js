@@ -707,7 +707,6 @@ function navTo(screenId) {
     if (target) target.classList.add('active');
     
     if (screenId === 'profile') loadProfileData();
-    if (screenId === 'wallet') loadBalanceHistory();
 
     const sideMenu = document.getElementById('side-menu');
     const overlay = document.getElementById('menu-overlay');
