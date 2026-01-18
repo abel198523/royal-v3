@@ -406,11 +406,11 @@ STAKES.forEach(amount => {
 let pendingOTP = {};
 
 app.post('/api/signup-request', async (req, res) => {
-    const { telegram_chat_id } = req.body;
+    const { telegram_chat_id, referred_by } = req.body;
     if (!telegram_chat_id) return res.status(400).json({ error: "የቴሌግራም Chat ID ያስገቡ" });
     try {
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        pendingOTP[telegram_chat_id] = { otp, timestamp: Date.now() };
+        pendingOTP[telegram_chat_id] = { otp, referredBy: referred_by, timestamp: Date.now() };
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         if (!botToken) return res.status(500).json({ error: "የቴሌግራም ቦት አልተዋቀረም" });
         const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -431,15 +431,47 @@ app.post('/api/signup-verify', async (req, res) => {
     try {
         const record = pendingOTP[telegram_chat_id];
         if (!record || record.otp !== otp) return res.status(400).json({ error: "የተሳሳተ የኦቲፒ ኮድ" });
+        
+        const referredBy = record.referredBy; // Get referrer from record
         delete pendingOTP[telegram_chat_id];
+        
         const hash = await bcrypt.hash(password, 10);
         const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
         const finalPhone = phone || telegram_chat_id;
+        const signupBonus = 10.0;
+        
         const result = await db.query(
-            'INSERT INTO users (phone_number, password_hash, username, name, balance, player_id, telegram_chat_id) VALUES ($1, $2, $3, $4, 0, $5, $6) RETURNING *',
-            [finalPhone, hash, finalPhone, name, playerId, telegram_chat_id]
+            'INSERT INTO users (phone_number, password_hash, username, name, balance, player_id, telegram_chat_id, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [finalPhone, hash, finalPhone, name, signupBonus, playerId, telegram_chat_id, referredBy]
         );
+        
         const user = result.rows[0];
+        
+        // Reward referrer if exists
+        if (referredBy) {
+            const bonus = 2.0;
+            await db.query('UPDATE users SET balance = balance + $1 WHERE telegram_chat_id = $2', [bonus, referredBy]);
+            const referrer = await db.query('SELECT balance FROM users WHERE telegram_chat_id = $1', [referredBy]);
+            if (referrer.rows.length > 0) {
+                await db.query('INSERT INTO balance_history (user_id, type, amount, balance_after, description) VALUES ((SELECT id FROM users WHERE telegram_chat_id = $1), $2, $3, $4, $5)', 
+                    [referredBy, 'referral_bonus', bonus, referrer.rows[0].balance, `Referral bonus for inviting ${finalPhone}`]);
+                
+                // Notify referrer via Telegram
+                const botToken = process.env.TELEGRAM_BOT_TOKEN;
+                if (botToken) {
+                    const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+                    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: referredBy,
+                            text: `🎁 የእንኳን ደስ አለዎት! አዲስ ሰው ስለጋበዙ 2 ETB ቦነስ ተሰጥቶዎታል።\n\nአሁናዊ ባላንስ: ${referrer.rows[0].balance} ETB`
+                        })
+                    }).catch(e => {});
+                }
+            }
+        }
+        
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
         res.json({ token, username: user.username, balance: user.balance, name: user.name, player_id: user.player_id, is_admin: user.is_admin });
     } catch (err) { res.status(500).json({ error: "ምዝገባው አልተሳካም" }); }
