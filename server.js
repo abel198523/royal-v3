@@ -57,6 +57,8 @@ app.post('/telegram-webhook', async (req, res) => {
     if (!botToken) return res.sendStatus(500);
     
     const update = req.body;
+    const webUrl = process.env.WEB_URL || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://fidel-bingo.onrender.com');
+
     if (update.message && update.message.text === '/start') {
         const chatId = update.message.chat.id;
         const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -68,7 +70,14 @@ app.post('/telegram-webhook', async (req, res) => {
             body: JSON.stringify({
                 chat_id: chatId,
                 text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: `" + chatId + "`",
-                parse_mode: 'Markdown'
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: "ወደ ዌብሳይቱ ይሂዱ", url: webUrl }
+                        ]
+                    ]
+                }
             })
         });
     }
