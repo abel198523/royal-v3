@@ -103,9 +103,9 @@ app.post('/telegram-webhook', async (req, res) => {
         const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
         try {
-            // Check for referral code in /start command
+            // Check for referral code in /start command - SAFE CHECK
             let referredBy = null;
-            if (update.message.text.startsWith('/start ')) {
+            if (update.message && update.message.text && update.message.text.startsWith('/start ')) {
                 referredBy = update.message.text.split(' ')[1];
             }
 
