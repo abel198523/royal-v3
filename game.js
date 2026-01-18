@@ -235,6 +235,103 @@ socket.onmessage = (event) => {
     }
 };
 
+    const submitDeposit = document.getElementById('submit-deposit');
+    if (submitDeposit) {
+        submitDeposit.onclick = async () => {
+            const amount = document.getElementById('deposit-amount').value;
+            const method = document.getElementById('deposit-method').value;
+            const code = document.getElementById('deposit-code').value;
+            const statusEl = document.getElementById('deposit-status');
+            const token = localStorage.getItem('bingo_token');
+
+            if (!amount || !method || !code) {
+                if (statusEl) {
+                    statusEl.innerText = "እባክዎ ሁሉንም መረጃዎች በትክክል ይሙሉ";
+                    statusEl.style.color = "#ef4444";
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/deposit-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ amount, method, code })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    if (statusEl) {
+                        statusEl.innerText = data.message;
+                        statusEl.style.color = "#22c55e";
+                    }
+                    document.getElementById('deposit-code').value = '';
+                } else {
+                    if (statusEl) {
+                        statusEl.innerText = data.error || "ስህተት አጋጥሟል";
+                        statusEl.style.color = "#ef4444";
+                    }
+                }
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+                    statusEl.style.color = "#ef4444";
+                }
+            }
+        };
+    }
+
+    const submitWithdraw = document.getElementById('submit-withdraw');
+    if (submitWithdraw) {
+        submitWithdraw.onclick = async () => {
+            const amount = document.getElementById('withdraw-amount').value;
+            const method = document.getElementById('withdraw-method').value;
+            const account = document.getElementById('withdraw-account').value;
+            const statusEl = document.getElementById('withdraw-status');
+            const token = localStorage.getItem('bingo_token');
+
+            if (!amount || !method || !account) {
+                if (statusEl) {
+                    statusEl.innerText = "እባክዎ ሁሉንም መረጃዎች በትክክል ይሙሉ";
+                    statusEl.style.color = "#ef4444";
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/withdraw-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ amount, method, account })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    if (statusEl) {
+                        statusEl.innerText = data.message;
+                        statusEl.style.color = "#22c55e";
+                    }
+                    document.getElementById('withdraw-amount').value = '';
+                    document.getElementById('withdraw-account').value = '';
+                } else {
+                    if (statusEl) {
+                        statusEl.innerText = data.error || "ስህተት አጋጥሟል";
+                        statusEl.style.color = "#ef4444";
+                    }
+                }
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.innerText = "ከሰርቨር ጋር መገናኘት አልተቻለም";
+                    statusEl.style.color = "#ef4444";
+                }
+            }
+        };
+    }
+
     const bingoBtn = document.getElementById('bingo-btn');
     if (bingoBtn) {
         bingoBtn.onclick = () => {
