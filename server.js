@@ -84,6 +84,9 @@ app.post('/telegram-webhook', async (req, res) => {
                 text: "እንኳን ወደ Fidel Bingo በሰላም መጡ! ለመመዝገብ እባክዎ ዌብሳይቱ ላይ Chat ID በመጠቀም ይመዝገቡ።\n\nየእርስዎ Chat ID: `" + chatId + "`",
                 parse_mode: 'Markdown',
                 reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "🎮 ወደ ዌብሳይቱ ሂድ (Go to Website)", url: webUrl }]
+                    ],
                     keyboard: [
                         [{ text: "💰 ባላንስ ቼክ (Balance)" }],
                         [{ text: "➕ ብር መሙላት (Deposit)" }, { text: "➖ ብር ማውጣት (Withdraw)" }],
