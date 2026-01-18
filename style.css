@@ -355,17 +355,39 @@ body {
     position: fixed;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
+    transform: translateX(-50%) translateY(150px);
     background: #ef4444;
     color: white;
     padding: 15px 25px;
     border-radius: 12px;
-    z-index: 3000;
+    z-index: 10000;
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    transition: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 250px;
+    text-align: center;
 }
 
 .notification-toast.active {
+    transform: translateX(-50%) translateY(0);
+}
+
+#notification-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(150px);
+    background: #ef4444;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    z-index: 10000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    min-width: 250px;
+    text-align: center;
+}
+
+#notification-toast.active {
     transform: translateX(-50%) translateY(0);
 }
 

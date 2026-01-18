@@ -486,6 +486,18 @@ function updateGameUI(history) {
     const lastBall = history[history.length - 1];
     const letter = getBallLetter(lastBall);
     activeBall.innerHTML = `<span>${letter}${lastBall}</span>`;
+    
+    // Sync top bar stats on every UI update if global data exists
+    if (currentRoom) {
+        const derashEl = document.getElementById('derash');
+        const playersEl = document.getElementById('players');
+        const betEl = document.getElementById('bet');
+        
+        if (derashEl && globalPrizes[currentRoom]) derashEl.innerText = globalPrizes[currentRoom].toFixed(0);
+        if (playersEl && globalStats[currentRoom]) playersEl.innerText = globalStats[currentRoom];
+        if (betEl) betEl.innerText = currentRoom;
+    }
+
     if (autoMarking) {
         history.forEach(num => {
             const el = document.getElementById(`cell-${num}`);
