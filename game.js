@@ -743,4 +743,184 @@ if (submitWithdraw) {
     };
 }
 
+// Admin UI Switcher
+window.switchAdminTab = (tab) => {
+    document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`admin-${tab}-tab`).classList.add('active');
+    event.target.classList.add('active');
+    
+    if (tab === 'deposits') fetchAdminDeposits();
+    if (tab === 'withdrawals') fetchAdminWithdrawals();
+};
+
+async function fetchAdminDeposits() {
+    const token = localStorage.getItem('bingo_token');
+    const listEl = document.getElementById('admin-deposits-list');
+    try {
+        const res = await fetch('/api/admin/deposits', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const deposits = await res.json();
+        if (deposits.length === 0) {
+            listEl.innerHTML = '<p class="empty-msg">No pending deposit requests.</p>';
+            return;
+        }
+        listEl.innerHTML = deposits.map(d => `
+            <div class="deposit-card">
+                <p><strong>${d.name} (${d.phone_number})</strong></p>
+                <p>Amount: ${d.amount} ETB | Method: ${d.method}</p>
+                <p>Code: <small>${d.transaction_code}</small></p>
+                <div class="btn-group">
+                    <button onclick="handleDeposit('${d.id}', 'approve')" class="balance-btn add">Approve</button>
+                    <button onclick="handleDeposit('${d.id}', 'reject')" class="balance-btn sub">Reject</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) { console.error(e); }
+}
+
+async function fetchAdminWithdrawals() {
+    const token = localStorage.getItem('bingo_token');
+    const listEl = document.getElementById('admin-withdrawals-list');
+    try {
+        const res = await fetch('/api/admin/withdrawals', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const withdrawals = await res.json();
+        if (withdrawals.length === 0) {
+            listEl.innerHTML = '<p class="empty-msg">No pending withdrawal requests.</p>';
+            return;
+        }
+        listEl.innerHTML = withdrawals.map(w => `
+            <div class="deposit-card">
+                <p><strong>${w.name} (${w.phone_number})</strong></p>
+                <p>Amount: ${w.amount} ETB | Method: ${w.method}</p>
+                <p>Account: ${w.account_details}</p>
+                <div class="btn-group">
+                    <button onclick="handleWithdraw('${w.id}', 'approve')" class="balance-btn add">Approve</button>
+                    <button onclick="handleWithdraw('${w.id}', 'reject')" class="balance-btn sub">Reject</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) { console.error(e); }
+}
+
+window.handleDeposit = async (id, action) => {
+    const token = localStorage.getItem('bingo_token');
+    const endpoint = action === 'approve' ? '/api/admin/approve-deposit' : '/api/admin/reject-deposit';
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ depositId: id })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        fetchAdminDeposits();
+    } catch (e) { console.error(e); }
+};
+
+window.handleWithdraw = async (id, action) => {
+    const token = localStorage.getItem('bingo_token');
+    try {
+        const res = await fetch('/api/admin/handle-withdraw', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ withdrawId: id, action })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        fetchAdminWithdrawals();
+    } catch (e) { console.error(e); }
+};
+
+// User Search & Balance Update
+const adminSearchBtn = document.getElementById('admin-search-btn');
+if (adminSearchBtn) {
+    adminSearchBtn.onclick = async () => {
+        const phone = document.getElementById('admin-search-phone').value;
+        const token = localStorage.getItem('bingo_token');
+        try {
+            const res = await fetch(`/api/admin/user/${phone}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const user = await res.json();
+            if (res.ok) {
+                document.getElementById('admin-user-result').style.display = 'block';
+                document.getElementById('admin-user-name').innerText = user.name;
+                document.getElementById('admin-user-phone').innerText = user.phone_number;
+                document.getElementById('admin-user-balance').innerText = user.balance;
+                window.currentAdminUser = user;
+            } else {
+                alert(user.error);
+            }
+        } catch (e) { console.error(e); }
+    };
+}
+
+const addBalanceBtn = document.getElementById('admin-add-balance');
+if (addBalanceBtn) {
+    addBalanceBtn.onclick = () => updateBalance(true);
+}
+const subBalanceBtn = document.getElementById('admin-sub-balance');
+if (subBalanceBtn) {
+    subBalanceBtn.onclick = () => updateBalance(false);
+}
+
+async function updateBalance(isAdd) {
+    const amount = parseFloat(document.getElementById('admin-balance-amount').value);
+    if (isNaN(amount)) return alert("መጠን ያስገቡ");
+    const token = localStorage.getItem('bingo_token');
+    const user = window.currentAdminUser;
+    if (!user) return;
+
+    const newBalance = isAdd ? (parseFloat(user.balance) + amount) : (parseFloat(user.balance) - amount);
+    try {
+        const res = await fetch('/api/admin/update-balance', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ phone: user.phone_number, balance: newBalance })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('admin-user-balance').innerText = newBalance;
+            window.currentAdminUser.balance = newBalance;
+            alert("ባላንስ ተስተካክሏል");
+        } else {
+            alert(data.error);
+        }
+    } catch (e) { console.error(e); }
+}
+
+const sendBroadcastBtn = document.getElementById('send-broadcast');
+if (sendBroadcastBtn) {
+    sendBroadcastBtn.onclick = async () => {
+        const message = document.getElementById('broadcast-message').value;
+        if (!message) return alert("መልዕክት ያስገቡ");
+        const token = localStorage.getItem('bingo_token');
+        try {
+            const res = await fetch('/api/admin/broadcast', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ message })
+            });
+            const data = await res.json();
+            alert(data.message || data.error);
+        } catch (e) { console.error(e); }
+    };
+}
+
 initApp();
