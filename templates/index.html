@@ -15,7 +15,7 @@
             </div>
             <div class="card bg-light">
                 <div class="card-body p-3 text-center">
-                    <h5 class="mb-1 text-success">Wallet: <span id="walletBalance">{{ balance }}</span> ETB</h5>
+                    <h5 class="mb-1 text-success">Wallet: <span id="walletBalance">{{ balance }}</span> ETB <button onclick="refreshBalance()" class="btn btn-sm btn-outline-success ms-2" title="Refresh Balance"><i class="bi bi-arrow-clockwise"></i> 🔄</button></h5>
                     <div class="mt-2 p-2 border rounded bg-white shadow-sm">
                         <p class="mb-0 text-dark fw-bold" style="font-size: 0.9rem;">
                             <i class="bi bi-info-circle text-primary"></i> 
@@ -47,6 +47,31 @@
     </div>
 
     <script>
+        async function refreshBalance() {
+            const btn = document.querySelector('button[onclick="refreshBalance()"]');
+            if (btn) btn.disabled = true;
+            try {
+                // In a real app, we use the token from localStorage
+                const token = localStorage.getItem('token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const response = await fetch('/api/user/balance', { headers });
+                const data = await response.json();
+                if (data.balance !== undefined) {
+                    document.getElementById('walletBalance').innerText = data.balance.toFixed(2);
+                }
+            } catch (e) {
+                console.error("Balance refresh failed", e);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // Auto refresh balance every 30 seconds
+        setInterval(refreshBalance, 30000);
+
+        // Refresh when window gets focus
+        window.addEventListener('focus', refreshBalance);
+
         async function buyCard(roomId) {
             const response = await fetch(`/buy-card/${roomId}`, { method: 'POST' });
             const data = await response.json();

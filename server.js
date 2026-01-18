@@ -712,6 +712,19 @@ app.post('/api/withdraw-request', async (req, res) => {
     }
 });
 
+app.get('/api/user/balance', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Login required" });
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const result = await db.query('SELECT balance FROM users WHERE id = $1', [decoded.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
+        res.json({ balance: parseFloat(result.rows[0].balance) });
+    } catch (err) {
+        res.status(500).json({ error: "ስህተት" });
+    }
+});
+
 app.get('/api/balance-history', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: "Login required" });
