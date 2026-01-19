@@ -7,6 +7,7 @@ class User(db.Model):
     telegram_chat_id = db.Column(db.String(64), unique=True)
     balance = db.Column(db.Float, default=0.0)
     is_admin = db.Column(db.Boolean, default=False)
+    referred_by = db.Column(db.String(255))
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
