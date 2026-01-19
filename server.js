@@ -515,24 +515,25 @@ app.post('/api/signup-request', async (req, res) => {
 
 app.post('/api/signup-verify', async (req, res) => {
     const { telegram_chat_id, password, name, phone, otp } = req.body;
-    try {
-        const record = pendingOTP[telegram_chat_id];
-        if (!record || record.otp !== otp) return res.status(400).json({ error: "የተሳሳተ የኦቲፒ ኮድ" });
-        
-        const referredBy = record.referredBy; // Get referrer from record
-        delete pendingOTP[telegram_chat_id];
-        
-        const hash = await bcrypt.hash(password, 10);
-        const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
-        const finalPhone = phone || telegram_chat_id;
-        const signupBonus = 10.0;
-        
-        // Ensure table columns match our schema (id, balance, is_admin, username, telegram_chat_id, name, player_id, phone_number, password_hash, referred_by)
-        // Wait, the table might be missing columns. Let's try to align with what we found.
-        const result = await db.query(
-            'INSERT INTO users (username, telegram_chat_id, name, balance, player_id, phone_number, password_hash, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [finalPhone, telegram_chat_id, name, signupBonus, playerId, finalPhone, hash, referredBy]
-        );
+        try {
+            const record = pendingOTP[telegram_chat_id];
+            if (!record || record.otp !== otp) return res.status(400).json({ error: "የተሳሳተ የኦቲፒ ኮድ" });
+            
+            const referredBy = record.referredBy; // Get referrer from record
+            delete pendingOTP[telegram_chat_id];
+            
+            const hash = await bcrypt.hash(password, 10);
+            const playerId = 'PL' + Math.floor(1000 + Math.random() * 9000);
+            const finalPhone = phone || telegram_chat_id;
+            const signupBonus = 10.0;
+            
+            // Critical: Ensure we use telegram_chat_id for username if phone is missing
+            const username = finalPhone || telegram_chat_id;
+
+            const result = await db.query(
+                'INSERT INTO users (username, telegram_chat_id, name, balance, player_id, phone_number, password_hash, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+                [username, telegram_chat_id.toString(), name, signupBonus, playerId, finalPhone, hash, referredBy]
+            );
         
         const user = result.rows[0];
         
@@ -563,7 +564,10 @@ app.post('/api/signup-verify', async (req, res) => {
         
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
         res.json({ token, username: user.username, balance: parseFloat(user.balance || 0), name: user.name, player_id: user.player_id, phone_number: user.phone_number, is_admin: user.is_admin });
-    } catch (err) { res.status(500).json({ error: "ምዝገባው አልተሳካም" }); }
+    } catch (err) { 
+        console.error("Signup verify error:", err);
+        res.status(500).json({ error: "ምዝገባው አልተሳካም: " + (err.message || "የሰርቨር ስህተት") }); 
+    }
 });
 
 app.post('/api/login', async (req, res) => {
