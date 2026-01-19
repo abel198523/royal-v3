@@ -35,9 +35,14 @@ def signup():
             return jsonify({"success": False, "message": "Username and Telegram Chat ID are required"}), 400
             
         # Check if user already exists (Telegram Chat ID must be unique)
-        existing_user = User.query.filter_by(telegram_chat_id=telegram_chat_id).first()
-        if existing_user:
-            return jsonify({"success": False, "message": "ይህ የቴሌግራም አካውንት ቀድሞ ተመዝግቧል!"}), 400
+        try:
+            existing_user = User.query.filter_by(telegram_chat_id=telegram_chat_id).first()
+            if existing_user:
+                return jsonify({"success": False, "message": "ይህ የቴሌግራም አካውንት ቀድሞ ተመዝግቧል!"}), 400
+        except Exception as e:
+            # If column doesn't exist yet or other DB error, handle gracefully
+            app.logger.error(f"Database error during signup: {e}")
+            return jsonify({"success": False, "message": "የዳታቤዝ ስህተት አጋጥሟል:: እባክዎ ቆይተው ይሞክሩ::"}), 500
             
         new_user = User()
         new_user.username = username
