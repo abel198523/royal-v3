@@ -571,13 +571,13 @@ app.post('/api/signup-verify', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { telegram_chat_id, password } = req.body;
+    const { phone, password } = req.body;
     try {
-        const result = await db.query('SELECT * FROM users WHERE telegram_chat_id = $1', [telegram_chat_id]);
-        if (result.rows.length === 0) return res.status(404).json({ error: "ተጠቃሚው አልተገኘም" });
-        const isMatch = await bcrypt.compare(password, result.rows[0].password_hash);
-        if (!isMatch) return res.status(401).json({ error: "የተሳሳተ የይለፍ ቃል" });
+        const result = await db.query('SELECT * FROM users WHERE phone_number = $1', [phone]);
+        if (result.rows.length === 0) return res.status(401).json({ error: "ተጠቃሚው አልተገኘም ወይም የተሳሳተ ስልክ ቁጥር" });
         const user = result.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) return res.status(401).json({ error: "የተሳሳተ የይለፍ ቃል" });
         const token = jwt.sign({ id: user.id, username: user.username, is_admin: user.is_admin }, SECRET_KEY);
         res.json({ token, username: user.username, balance: parseFloat(user.balance || 0), name: user.name, player_id: user.player_id, phone_number: user.phone_number, is_admin: user.is_admin });
     } catch (err) { 

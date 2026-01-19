@@ -417,11 +417,11 @@ function logout() {
 const loginBtn = document.getElementById('do-login');
 if (loginBtn) {
     loginBtn.onclick = async () => {
-        const telegram_chat_id = document.getElementById('login-telegram').value;
+        const phone = document.getElementById('login-phone').value;
         const password = document.getElementById('login-pass').value;
         const errorEl = document.getElementById('auth-error-login');
 
-        if (!telegram_chat_id || !password) {
+        if (!phone || !password) {
             if (errorEl) errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
             return;
         }
@@ -430,7 +430,7 @@ if (loginBtn) {
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telegram_chat_id, password })
+                body: JSON.stringify({ phone, password })
             });
             const data = await res.json();
             if (res.ok) {
@@ -462,11 +462,12 @@ const doSignupBtn = document.getElementById('do-signup');
 if (doSignupBtn) {
     doSignupBtn.onclick = async () => {
         const name = document.getElementById('signup-name').value;
+        const phone = document.getElementById('signup-phone').value;
         const telegram_chat_id = document.getElementById('signup-telegram').value;
         const password = document.getElementById('signup-pass').value;
         const errorEl = document.getElementById('auth-error-signup');
 
-        if (!name || !telegram_chat_id || !password) {
+        if (!name || !phone || !telegram_chat_id || !password) {
             if (errorEl) errorEl.innerText = "እባክዎ ሁሉንም መረጃዎች ያስገቡ";
             return;
         }
@@ -483,7 +484,7 @@ if (doSignupBtn) {
                 document.getElementById('otp-form').style.display = 'block';
                 const hint = document.getElementById('otp-hint');
                 if (hint) hint.innerText = `OTP ወደ ቴሌግራም (${telegram_chat_id}) ተልኳል`;
-                window.signupTempData = { name, telegram_chat_id, password };
+                window.signupTempData = { name, phone, telegram_chat_id, password };
             } else {
                 if (errorEl) errorEl.innerText = data.error || "የምዝገባ ጥያቄ ስህተት";
             }
