@@ -527,11 +527,11 @@ app.post('/api/signup-verify', async (req, res) => {
             const finalPhone = phone || telegram_chat_id;
             const signupBonus = 10.0;
             
-            // Critical: Ensure we use telegram_chat_id for username if phone is missing
-            const username = finalPhone || telegram_chat_id;
+            // Fallback for username if phone or telegram_chat_id issues occur
+            const username = (finalPhone || telegram_chat_id || Date.now()).toString();
 
             const result = await db.query(
-                'INSERT INTO users (username, telegram_chat_id, name, balance, player_id, phone_number, password_hash, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+                'INSERT INTO users (username, telegram_chat_id, name, balance, player_id, phone_number, password_hash, referred_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (telegram_chat_id) DO UPDATE SET phone_number = EXCLUDED.phone_number, name = EXCLUDED.name RETURNING *',
                 [username, telegram_chat_id.toString(), name, signupBonus, playerId, finalPhone, hash, referredBy]
             );
         
