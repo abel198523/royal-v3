@@ -11,6 +11,9 @@ OTPS = {}
 
 def get_or_create_session(room_id):
     room = Room.query.get(room_id)
+    if not room:
+        return None
+    
     session = None
     if room.active_session_id:
         session = GameSession.query.get(room.active_session_id)
@@ -117,6 +120,9 @@ def buy_card(room_id):
     room = Room.query.get_or_404(room_id)
     session = get_or_create_session(room_id)
     
+    if not session:
+        return jsonify({"success": False, "message": "Room session error"}), 500
+        
     if user.balance >= room.card_price:
         user.balance -= room.card_price
         transaction = Transaction()
@@ -127,8 +133,8 @@ def buy_card(room_id):
         db.session.add(transaction)
         db.session.commit()
         
-        player_count = db.session.query(db.func.count(db.distinct(Transaction.user_id)))\
-            .filter(Transaction.room_id == room.id, Transaction.session_id == session.id).scalar()
+        player_count = db.session.query(db.func.count(db.distinct(Transaction.user_id)))
+        player_count = player_count.filter(Transaction.room_id == room.id, Transaction.session_id == session.id).scalar()
         
         house_cut = 0.2
         total_bets = player_count * room.card_price
@@ -148,10 +154,11 @@ def buy_card(room_id):
 @app.route("/declare-winner/<int:room_id>", methods=["POST"])
 def declare_winner(room_id):
     room = Room.query.get_or_404(room_id)
+    if not room.active_session_id:
+        return jsonify({"success": False, "message": "No active session"})
+        
     session = GameSession.query.get(room.active_session_id)
-    
     if session and session.status == 'active':
-        # For now, just mark session completed to clear the room
         session.status = 'completed'
         room.active_session_id = None
         db.session.commit()
@@ -161,10 +168,17 @@ def declare_winner(room_id):
 
 @app.route("/setup-rooms")
 def setup_rooms():
-    if not Room.query.first():
-        prices = [5.0, 10.0, 20.0, 50.0, 100.0]
-        for p in prices:
-            r = Room(name=f"{int(p)} ETB Room", card_price=p)
-            db.session.add(r)
-        db.session.commit()
-    return "Rooms setup completed!"
+    # Force delete all existing rooms to ensure we only have what we want
+    db.session.query(Transaction).delete()
+    db.session.query(GameSession).delete()
+    db.session.query(Room).delete()
+    db.session.commit()
+    
+    prices = [5.0, 10.0, 20.0]
+    for p in prices:
+        r = Room()
+        r.name = f"{int(p)} ETB Room"
+        r.card_price = p
+        db.session.add(r)
+    db.session.commit()
+    return "Rooms setup completed! Only 5, 10, 20 ETB rooms exist now."
