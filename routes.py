@@ -39,12 +39,11 @@ def signup():
         if existing_user:
             return jsonify({"success": False, "message": "Telegram Chat ID already registered"}), 400
             
-        new_user = User(
-            username=username,
-            telegram_chat_id=telegram_chat_id,
-            referred_by=referred_by,
-            balance=0.0
-        )
+        new_user = User()
+        new_user.username = username
+        new_user.telegram_chat_id = telegram_chat_id
+        new_user.referred_by = referred_by
+        new_user.balance = 0.0
         db.session.add(new_user)
         try:
             db.session.commit()
