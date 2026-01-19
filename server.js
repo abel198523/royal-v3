@@ -33,6 +33,13 @@ const wss = new WebSocket.Server({ server });
             )
         `);
 
+        // Migration: Add referred_by column if it doesn't exist
+        try {
+            await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(255)');
+        } catch (e) {
+            console.log("Migration: referred_by column already exists or failed to add");
+        }
+
         // Deposit Requests Table
         await db.query(`
             CREATE TABLE IF NOT EXISTS deposit_requests (
