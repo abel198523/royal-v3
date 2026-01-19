@@ -5,7 +5,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     telegram_chat_id = db.Column(db.String(64), unique=True, nullable=False)
-    phone_number = db.Column(db.String(20), nullable=True)
     balance = db.Column(db.Float, default=0.0)
     is_admin = db.Column(db.Boolean, default=False)
     referred_by = db.Column(db.String(255))
