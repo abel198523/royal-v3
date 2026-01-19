@@ -236,7 +236,7 @@ app.post('/telegram-webhook', async (req, res) => {
 
         if (text === "💰 ባላንስ ቼክ (Balance)") {
             const result = await db.query("SELECT balance FROM users WHERE telegram_chat_id = $1", [chatId.toString()]);
-            const balance = result.rows.length > 0 ? result.rows[0].balance : 0;
+            const balance = result.rows.length > 0 ? parseFloat(result.rows[0].balance || 0).toFixed(2) : "0.00";
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
