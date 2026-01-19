@@ -166,6 +166,12 @@ def declare_winner(room_id):
     
     return jsonify({"success": False, "message": "No active session"})
 
+@app.route("/admin")
+def admin_panel():
+    rooms = Room.query.all()
+    users = User.query.all()
+    return render_template("admin.html", rooms=rooms, users=users)
+
 @app.route("/setup-rooms")
 def setup_rooms():
     # Force delete all existing rooms to ensure we only have what we want
