@@ -37,7 +37,7 @@ def signup():
         # Check if user already exists (Telegram Chat ID must be unique)
         existing_user = User.query.filter_by(telegram_chat_id=telegram_chat_id).first()
         if existing_user:
-            return jsonify({"success": False, "message": "Telegram Chat ID already registered"}), 400
+            return jsonify({"success": False, "message": "ይህ የቴሌግራም አካውንት ቀድሞ ተመዝግቧል!"}), 400
             
         new_user = User()
         new_user.username = username

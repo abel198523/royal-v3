@@ -10,13 +10,42 @@
     </style>
 </head>
 <body>
-    <form method="POST">
+    <form id="signup-form" method="POST">
         <h2>Sign Up</h2>
+        <div id="error-message" style="color: #ef4444; margin-bottom: 1rem; display: none;"></div>
         <input type="text" name="username" placeholder="Username" required>
         <input type="text" name="telegram_chat_id" placeholder="Telegram Chat ID" required>
         <input type="text" name="referred_by" placeholder="Referred By (Optional)">
         <button type="submit">Register</button>
         <p>Have an account? <a href="/login" style="color:#3b82f6">Login</a></p>
     </form>
+
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/signup', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '/login';
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
