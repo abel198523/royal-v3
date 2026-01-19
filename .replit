@@ -38,3 +38,8 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 build = ["npm", "install"]
+
+[userenv]
+
+[userenv.shared]
+RENDER_DATABASE_URL = "postgresql://neondb_owner:npg_0AR6SKNJhCTp@ep-spring-violet-ahybmy8e-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
