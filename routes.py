@@ -17,7 +17,10 @@ def index():
             db.session.commit()
         else:
             # Create the specific user if nothing matches
-            user = User(username="testuser", balance=202.0, telegram_chat_id="0980682889")
+            user = User()
+            user.username = "testuser"
+            user.balance = 202.0
+            user.telegram_chat_id = "0980682889"
             db.session.add(user)
             db.session.commit()
             
@@ -34,7 +37,10 @@ def buy_card(room_id):
     
     if user.balance >= room.card_price:
         user.balance -= room.card_price
-        transaction = Transaction(user_id=user.id, room_id=room.id, amount=room.card_price)
+        transaction = Transaction()
+        transaction.user_id = user.id
+        transaction.room_id = room.id
+        transaction.amount = room.card_price
         db.session.add(transaction)
         db.session.commit()
         
@@ -60,11 +66,26 @@ def buy_card(room_id):
 @app.route("/setup-rooms")
 def setup_rooms():
     if not Room.query.first():
-        room1 = Room(name="5 ETB Room", card_price=5.0)
-        room2 = Room(name="10 ETB Room", card_price=10.0)
-        room3 = Room(name="20 ETB Room", card_price=20.0)
-        room4 = Room(name="50 ETB Room", card_price=50.0)
-        room5 = Room(name="100 ETB Room", card_price=100.0)
+        room1 = Room()
+        room1.name = "5 ETB Room"
+        room1.card_price = 5.0
+        
+        room2 = Room()
+        room2.name = "10 ETB Room"
+        room2.card_price = 10.0
+        
+        room3 = Room()
+        room3.name = "20 ETB Room"
+        room3.card_price = 20.0
+        
+        room4 = Room()
+        room4.name = "50 ETB Room"
+        room4.card_price = 50.0
+        
+        room5 = Room()
+        room5.name = "100 ETB Room"
+        room5.card_price = 100.0
+        
         db.session.add_all([room1, room2, room3, room4, room5])
         db.session.commit()
     return "Rooms setup completed! Rooms created: 5, 10, 20, 50, 100 ETB."
