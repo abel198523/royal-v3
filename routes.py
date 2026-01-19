@@ -24,7 +24,37 @@ def index():
             db.session.add(user)
             db.session.commit()
             
-    return render_template("index.html", rooms=rooms, balance=user.balance)
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form.get("username")
+        telegram_chat_id = request.form.get("telegram_chat_id")
+        referred_by = request.form.get("referred_by")
+        
+        if not username or not telegram_chat_id:
+            return jsonify({"success": False, "message": "Username and Telegram Chat ID are required"}), 400
+            
+        # Check if user already exists (Telegram Chat ID must be unique)
+        existing_user = User.query.filter_by(telegram_chat_id=telegram_chat_id).first()
+        if existing_user:
+            return jsonify({"success": False, "message": "Telegram Chat ID already registered"}), 400
+            
+        new_user = User(
+            username=username,
+            telegram_chat_id=telegram_chat_id,
+            referred_by=referred_by,
+            balance=0.0
+        )
+        db.session.add(new_user)
+        try:
+            db.session.commit()
+            # Send OTP logic would go here
+            return jsonify({"success": True, "message": "Registration successful. OTP sent to your Telegram."})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": str(e)}), 500
+            
+    return render_template("signup.html")
 
 @app.route("/buy-card/<int:room_id>", methods=["POST"])
 def buy_card(room_id):
