@@ -33,18 +33,11 @@ const wss = new WebSocket.Server({ server });
             )
         `);
 
-        // Migration: Add referred_by column if it doesn't exist
+        // Migration: Ensure telegram_chat_id has unique constraint for ON CONFLICT
         try {
-            await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(255)');
+            await db.query('ALTER TABLE users ADD CONSTRAINT users_telegram_chat_id_key UNIQUE (telegram_chat_id)');
         } catch (e) {
-            // Error handling for existing column
-        }
-
-        // Migration: Add referred_by column if it doesn't exist
-        try {
-            await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(255)');
-        } catch (e) {
-            // Error handling for existing column
+            // Constraint likely already exists
         }
 
         // Deposit Requests Table
