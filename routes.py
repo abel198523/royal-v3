@@ -166,8 +166,21 @@ def declare_winner(room_id):
     
     return jsonify({"success": False, "message": "No active session"})
 
-@app.route("/admin")
+@app.route("/admin", methods=["GET", "POST"])
 def admin_panel():
+    user = User.query.filter_by(telegram_chat_id='0980682889').first()
+    if not user or not user.is_admin:
+        return "Unauthorized", 403
+
+    if request.method == "POST":
+        target_chat_id = request.form.get("chat_id")
+        new_balance = request.form.get("balance")
+        target_user = User.query.filter_by(telegram_chat_id=target_chat_id).first()
+        if target_user:
+            target_user.balance = float(new_balance)
+            db.session.commit()
+            return redirect(url_for('admin_panel'))
+
     rooms = Room.query.all()
     users = User.query.all()
     return render_template("admin.html", rooms=rooms, users=users)
