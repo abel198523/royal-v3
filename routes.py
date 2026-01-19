@@ -24,41 +24,7 @@ def index():
             db.session.add(user)
             db.session.commit()
             
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "POST":
-        username = request.form.get("username")
-        telegram_chat_id = request.form.get("telegram_chat_id")
-        referred_by = request.form.get("referred_by")
-        
-        if not username or not telegram_chat_id:
-            return jsonify({"success": False, "message": "Username and Telegram Chat ID are required"}), 400
-            
-        # Check if user already exists (Telegram Chat ID must be unique)
-        try:
-            existing_user = User.query.filter_by(telegram_chat_id=telegram_chat_id).first()
-            if existing_user:
-                return jsonify({"success": False, "message": "ይህ የቴሌግራም አካውንት ቀድሞ ተመዝግቧል!"}), 400
-        except Exception as e:
-            # If column doesn't exist yet or other DB error, handle gracefully
-            app.logger.error(f"Database error during signup: {e}")
-            return jsonify({"success": False, "message": "የዳታቤዝ ስህተት አጋጥሟል:: እባክዎ ቆይተው ይሞክሩ::"}), 500
-            
-        new_user = User()
-        new_user.username = username
-        new_user.telegram_chat_id = telegram_chat_id
-        new_user.referred_by = referred_by
-        new_user.balance = 0.0
-        db.session.add(new_user)
-        try:
-            db.session.commit()
-            # Send OTP logic would go here
-            return jsonify({"success": True, "message": "Registration successful. OTP sent to your Telegram."})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"success": False, "message": str(e)}), 500
-            
-    return render_template("signup.html")
+    return render_template("index.html", rooms=rooms, balance=user.balance)
 
 @app.route("/buy-card/<int:room_id>", methods=["POST"])
 def buy_card(room_id):
