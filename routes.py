@@ -91,8 +91,20 @@ def verify_otp():
     return jsonify({"success": False, "message": "ትክክለኛ ያልሆነ ኮድ"}), 400
 
 @app.route("/")
+def welcome():
+    return render_template("welcome.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        # logic for registration would go here
+        return redirect(url_for("index"))
+    return render_template("register.html")
+
+@app.route("/index")
 def index():
     rooms = Room.query.all()
+    # Mocking a user for now, in a real app this would be the logged in user
     user = User.query.filter_by(telegram_chat_id='0980682889').first()
     
     if not user:
