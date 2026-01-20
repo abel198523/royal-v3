@@ -59,7 +59,7 @@ def send_otp():
     send_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     requests.post(send_url, json={
         "chat_id": telegram_chat_id,
-        "text": f"Your Bingo registration code is: {otp}"
+        "text": f"🎮 ወደ ROYAL BINGO ዌብሳይት ለመሄድ ከታች ያለውን ሊንክ ይጫኑ፦\n\nhttps://royal-v3-1.onrender.com\n\nYour registration code is: {otp}"
     })
     
     return jsonify({"success": True})
