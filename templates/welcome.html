@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="welcome-container text-center py-5">
+    <div class="card shadow-lg p-5 mx-auto" style="max-width: 500px; border-radius: 15px;">
+        <h1 class="display-4 mb-4" style="color: #0088cc;">እንኳን ደህና መጡ!</h1>
+        <p class="lead mb-4">ኦቲፒ (OTP) ኮድ ለመቀበል እና ምዝገባ ለመጨረስ በቅድሚያ የቴሌግራም ቦታችንን ይቀላቀሉ።</p>
+        
+        <div class="telegram-section mb-4">
+            <a href="https://t.me/YOUR_BOT_USERNAME" target="_blank" class="btn btn-lg btn-primary mb-3" style="background-color: #0088cc; border: none; border-radius: 30px; padding: 12px 30px;">
+                <i class="fab fa-telegram-plane mr-2"></i> ቴሌግራም ቦት ተቀላቀል
+            </a>
+        </div>
+        
+        <hr>
+        
+        <div class="action-section mt-4">
+            <p class="text-muted">ቦቱን ተቀላቅለዋል?</p>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-success btn-lg px-5" style="border-radius: 30px;">ቀጥል (Joined)</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
